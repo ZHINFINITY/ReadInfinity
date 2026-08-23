@@ -3,6 +3,15 @@ use tauri::AppHandle;
 use tauri_plugin_fs::FsExt;
 use walkdir::WalkDir;
 
+#[cfg(target_os = "android")]
+fn is_android_shared_storage_path(path: &Path) -> bool {
+    let normalized = path.to_string_lossy().replace('\\', "/");
+    normalized == "/storage/emulated/0"
+        || normalized.starts_with("/storage/emulated/0/")
+        || normalized == "/sdcard"
+        || normalized.starts_with("/sdcard/")
+}
+
 #[derive(serde::Serialize)]
 pub struct ScannedFile {
     pub path: String,
@@ -19,7 +28,14 @@ pub async fn read_dir(
     let scope = app.fs_scope();
     let path_buf = std::path::PathBuf::from(&path);
 
-    if !scope.is_allowed(&path_buf) && !path_buf.to_string_lossy().contains("Readest") {
+    let allowed_by_scope = scope.is_allowed(&path_buf);
+    let allowed_by_app_storage = path_buf.to_string_lossy().contains("Readest");
+    #[cfg(target_os = "android")]
+    let allowed_by_android_shared_storage = is_android_shared_storage_path(&path_buf);
+    #[cfg(not(target_os = "android"))]
+    let allowed_by_android_shared_storage = false;
+
+    if !allowed_by_scope && !allowed_by_app_storage && !allowed_by_android_shared_storage {
         return Err("Permission denied: Path not in filesystem scope".to_string());
     }
 

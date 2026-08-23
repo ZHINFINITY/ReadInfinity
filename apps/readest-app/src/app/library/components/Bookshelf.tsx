@@ -930,7 +930,7 @@ const Bookshelf: React.FC<BookshelfProps> = ({
             }
           >
             <button
-              aria-label={_('Import Books')}
+              aria-label={_('Open Books')}
               aria-haspopup='menu'
               className={clsx(
                 'bookitem-main bg-base-100 hover:bg-base-300/50',

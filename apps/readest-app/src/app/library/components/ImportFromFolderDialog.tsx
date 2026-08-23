@@ -325,7 +325,7 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
     return (
       <Dialog
         isOpen
-        title={_('Import Books')}
+        title={_('Open Books from Folder')}
         onClose={onCancel}
         boxClassName={DIALOG_BOX_CLASS}
         contentClassName='!px-6 !py-2'
@@ -353,7 +353,7 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
   return (
     <Dialog
       isOpen
-      title={_('Import Books')}
+      title={_('Open Books from Folder')}
       onClose={onCancel}
       boxClassName={DIALOG_BOX_CLASS}
       contentClassName='!px-6 !py-2'
@@ -451,14 +451,10 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
           </div>
         </div>
 
-        {/* Read-in-place toggle. When OFF (default), each book is
-            copied into Books/<hash>/ as before. When ON, the chosen
-            folder is registered in `settings.externalLibraryFolders`
-            and the importer keeps each book at its original path —
-            no copy. Unchecking it for an already-registered folder
-            unregisters it on OK. See `runFolderImport` and
-            `shouldImportInPlace` in ingestService for the downstream
-            effects (cloud sync, symmetric local delete). */}
+        {/* Direct-device reading. Android defaults this to ON so discovered
+            books remain at their original shared-storage paths. The library
+            stores metadata and sidecars locally, but never copies the source
+            book into its managed Books/<hash>/ directory. */}
         <div className='flex flex-col gap-1.5'>
           <label
             className={clsx(
@@ -472,15 +468,16 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
               checked={readInPlace}
               onChange={(e) => setReadInPlaceChoice(e.target.checked)}
             />
-            <span className='select-none'>
-              <span className='block'>{_('Read books in place')}</span>
+                          <span className='select-none'>
+              <span className='block'>{_('Read directly from device storage')}</span>
+
               <span className='text-base-content/60 block text-xs'>
                 {isRegisteredRoot
                   ? _(
-                      'This folder is an external library. Uncheck to stop reading its books in place; future imports will copy books into the library.',
+                      'This folder is watched for local books. Disable direct reading only if you want to stop using this folder.',
                     )
                   : _(
-                      'Read books from their original folders instead of copying them into the library. Saves disk space; cloud auto-upload still works if enabled.',
+                      'Keep books in their original folders and read them directly. Only local metadata, covers, and reading notes are stored by ReadInfinity.',
                     )}
               </span>
             </span>
@@ -497,10 +494,10 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
                 onChange={(e) => setAutoImport(e.target.checked)}
               />
               <span className='select-none'>
-                <span className='block'>{_('Auto-import new books from this folder')}</span>
+                <span className='block'>{_('Watch this folder for new books')}</span>
                 <span className='text-base-content/60 block text-xs'>
                   {_(
-                    'When new books are added to this folder, import them automatically the next time Readest opens or returns to the foreground.',
+                    'When new books appear here, ReadInfinity finds them automatically when it opens or returns to the foreground.',
                   )}
                 </span>
               </span>
@@ -547,9 +544,9 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
               onChange={() => setFolderMode('flatten')}
             />
             <span className='select-none'>
-              <span className='block'>{_('Import all into library')}</span>
+              <span className='block'>{_('Add all books to library')}</span>
               <span className='text-base-content/60 block text-xs'>
-                {_('Recursively add every matching file directly to the library.')}
+                {_('Recursively find every supported book in this folder and keep it at its original path.')}
               </span>
             </span>
           </label>

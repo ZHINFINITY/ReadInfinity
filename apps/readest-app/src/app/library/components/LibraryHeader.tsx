@@ -198,7 +198,7 @@ const LibraryHeader: React.FC<LibraryHeaderProps> = ({
               <>
                 <span className='bg-base-content/50 mx-2 h-4 w-[0.5px]'></span>
                 <Dropdown
-                  label={_('Import Books')}
+                  label={_('Open Books')}
                   className={clsx(
                     'exclude-title-bar-mousedown dropdown-bottom dropdown-center cursor-pointer',
                   )}

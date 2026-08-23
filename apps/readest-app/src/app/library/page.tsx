@@ -50,6 +50,7 @@ import { useUICSS } from '@/hooks/useUICSS';
 import { useDemoBooks } from './hooks/useDemoBooks';
 import { useBookTransferActions } from './hooks/useBookTransferActions';
 import { useAutoImportFolders } from './hooks/useAutoImportFolders';
+import { useWindowActiveChanged } from '@/app/reader/hooks/useWindowActiveChanged';
 import { useBookDataStore } from '@/store/bookDataStore';
 import { useBackgroundTexture } from '@/hooks/useBackgroundTexture';
 import { getLibraryViewSettings } from '@/helpers/settings';
@@ -279,12 +280,13 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
   // `allowPathsInScopes` call makes tauri-plugin-persisted-scope rewrite its
   // whole state file on the main thread, so grant once, not on every focus
   // scan (issue #5494).
-    const autoImportGrantedFoldersRef = useRef<Set<string>>(new Set());
-  // Prevent repeated Android permission prompts and duplicate full-storage scans
-  // during React remounts or library navigation within the same app session.
+  const autoImportGrantedFoldersRef = useRef<Set<string>>(new Set());
+  // Prevent duplicate full-storage scans during React remounts or library
+  // navigation within the same app session. A separate in-flight guard allows
+  // the permission screen to be retried safely when Android resumes the app.
   const deviceStorageScanStartedRef = useRef(false);
+  const deviceStorageScanInFlightRef = useRef(false);
   const getScrollKey = (group: string) => `library-scroll-${group || 'all'}`;
-
 
   const saveScrollPosition = (group: string) => {
     if (scrollRef.current) {
@@ -964,7 +966,7 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
    * success toast then fires).
    */
   const autoImportFromWatchedFolders = async (folders: string[]) => {
-    if (!appService || loading) return;
+    if (!appService || loading) return 0;
     const { library } = useLibraryStore.getState();
     const osPlatform = appService.osPlatform;
     // Known local source paths — live AND soft-deleted (files the user deleted
@@ -1016,6 +1018,7 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
         if (key) autoImportFailedPathsRef.current.add(key);
       }
     }
+    return newFiles.length;
   };
 
   // Local-folder counterpart of useLibraryFileSync: re-scan the folders the
@@ -1030,42 +1033,70 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
       isTauriAppPlatform() &&
       !appService?.isIOSApp,
     folders: settings.autoImportFolders ?? [],
-    scanAndImport: autoImportFromWatchedFolders,
+    scanAndImport: async (folders) => {
+      await autoImportFromWatchedFolders(folders);
+    },
   });
 
   // ReadInfinity is local-first: on Android, request the existing native
   // storage permission once and scan shared internal storage automatically.
   // The native read_dir command is recursive and returns only supported book
   // extensions, while importBooks deduplicates against existing source paths.
-  useEffect(() => {
+  const scanDeviceStorage = useCallback(async () => {
     if (
       !libraryLoaded ||
       !appService?.isAndroidApp ||
-      deviceStorageScanStartedRef.current
+      deviceStorageScanStartedRef.current ||
+      deviceStorageScanInFlightRef.current
     ) {
       return;
     }
-    deviceStorageScanStartedRef.current = true;
-    let cancelled = false;
-    const scanDeviceStorage = async () => {
-      try {
-        const granted = await requestStoragePermission();
-        if (!granted || cancelled) return;
-        await autoImportFromWatchedFolders(['/storage/emulated/0']);
-      } catch (error) {
-        // Permission denial or an unavailable storage provider should not block
-        // the library; the manual local picker remains available.
-        console.warn('Automatic device-storage scan unavailable:', error);
+    deviceStorageScanInFlightRef.current = true;
+    try {
+      eventDispatcher.dispatch('toast', {
+        type: 'info',
+        timeout: 3000,
+        message: _('Scanning device storage…'),
+      });
+      const granted = await requestStoragePermission();
+      if (!granted) {
+        eventDispatcher.dispatch('toast', {
+          type: 'info',
+          timeout: 5000,
+          message: _('Storage access is required to discover books automatically.'),
+        });
+        return;
       }
-    };
+      const foundCount = await autoImportFromWatchedFolders(['/storage/emulated/0']);
+      deviceStorageScanStartedRef.current = true;
+      eventDispatcher.dispatch('toast', {
+        type: 'info',
+        timeout: 4000,
+        message:
+          foundCount > 0
+            ? _('Found {{count}} new books on device storage.', { count: foundCount })
+            : _('No new books found on device storage.'),
+      });
+    } catch (error) {
+      // Permission denial or an unavailable storage provider should not block
+      // the library. Because completion remains false, a later app-resume can
+      // retry after the user grants Android All Files Access.
+      console.warn('Automatic device-storage scan unavailable:', error);
+    } finally {
+      deviceStorageScanInFlightRef.current = false;
+    }
+  }, [_, appService, autoImportFromWatchedFolders, libraryLoaded]);
+
+  useEffect(() => {
     void scanDeviceStorage();
-    return () => {
-      cancelled = true;
-    };
-    // The scan intentionally runs once after the Android app service and
-    // persisted library are ready; focus rescans are handled separately.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appService, libraryLoaded]);
+  }, [scanDeviceStorage]);
+
+  // Android returns here after the user grants All Files Access in Settings.
+  // Retry on visibility/focus so the first denied response from the native
+  // permission command cannot permanently suppress discovery.
+  useWindowActiveChanged((isActive) => {
+    if (isActive) void scanDeviceStorage();
+  });
 
   // Queue downloads (the TransferQueuePanel path) report progress into the
   // transfer store instead of through this hook. Bookshelf reads them straight
@@ -1281,15 +1312,19 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
         ? Number.parseInt(storedMinSize, 10)
         : undefined;
     setImportFromFolderState({
-      initialDirectory: storedDirectory,
+      // Android’s shared-storage root is the default discovery location;
+      // users should not need to choose a folder before local books can be read.
+      initialDirectory: storedDirectory || (appService.isAndroidApp ? '/storage/emulated/0' : ''),
       initialFolderMode: storedMode === 'flatten' ? 'flatten' : 'keep',
       initialSelectedGroupIds: parsedFormats,
       initialMinSizeKB:
         parsedMinSize !== undefined && Number.isFinite(parsedMinSize) && parsedMinSize >= 0
           ? parsedMinSize
           : undefined,
-      initialReadInPlace: storedReadInPlace === '1',
-      initialAutoImport: isAutoImportFolder(storedDirectory),
+      // Android books are always retained at their original device path;
+      // direct access is the default rather than an opt-in copy/import mode.
+      initialReadInPlace: appService.isAndroidApp || storedReadInPlace === '1',
+      initialAutoImport: appService.isAndroidApp || isAutoImportFolder(storedDirectory),
     });
   };
 
