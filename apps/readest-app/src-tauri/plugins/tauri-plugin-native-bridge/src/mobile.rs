@@ -319,6 +319,14 @@ impl<R: Runtime> NativeBridge<R> {
 }
 
 impl<R: Runtime> NativeBridge<R> {
+    pub fn check_permissions(&self) -> crate::Result<RequestManageStoragePermissionResponse> {
+        self.0
+            .run_mobile_plugin("checkPermissions", ())
+            .map_err(Into::into)
+    }
+}
+
+impl<R: Runtime> NativeBridge<R> {
     pub fn request_manage_storage_permission(
         &self,
     ) -> crate::Result<RequestManageStoragePermissionResponse> {

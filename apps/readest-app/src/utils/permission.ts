@@ -15,7 +15,7 @@ export const isStoragePermissionError = (error: unknown): boolean => {
 };
 
 export const checkStoragePermission = async (): Promise<boolean> => {
-  const permission = await invoke<Permissions>('plugin:native-bridge|checkPermissions');
+  const permission = await invoke<Permissions>('plugin:native-bridge|check_permissions');
   return permission.manageStorage === 'granted';
 };
 

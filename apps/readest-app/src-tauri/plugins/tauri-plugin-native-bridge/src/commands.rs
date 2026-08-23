@@ -265,6 +265,13 @@ pub(crate) async fn get_storefront_region_code<R: Runtime>(
 }
 
 #[command]
+pub(crate) async fn check_permissions<R: Runtime>(
+    app: AppHandle<R>,
+) -> Result<RequestManageStoragePermissionResponse> {
+    app.native_bridge().check_permissions()
+}
+
+#[command]
 pub(crate) async fn request_manage_storage_permission<R: Runtime>(
     app: AppHandle<R>,
 ) -> Result<RequestManageStoragePermissionResponse> {

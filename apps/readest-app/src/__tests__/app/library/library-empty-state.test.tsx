@@ -35,8 +35,18 @@ describe('LibraryEmptyState', () => {
     useEnvMock.mockReturnValue({ appService: { isMobile: true } });
     render(<LibraryEmptyState onImport={vi.fn()} />);
 
-    expect(screen.getByText(/scans your device for books automatically/i)).toBeTruthy();
+    expect(screen.getByText(/scans shared storage automatically/i)).toBeTruthy();
     expect(screen.queryByText(/pick a book from your device/i)).toBeNull();
+  });
+
+  it('calls onChooseFolder when the books-folder button is clicked', () => {
+    useEnvMock.mockReturnValue({ appService: { isMobile: true, canReadExternalDir: true } });
+    const handleChooseFolder = vi.fn();
+    render(<LibraryEmptyState onImport={vi.fn()} onChooseFolder={handleChooseFolder} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Choose Books Folder' }));
+
+    expect(handleChooseFolder).toHaveBeenCalledTimes(1);
   });
 
   it('calls onImport when the local open button is clicked', () => {

@@ -112,6 +112,8 @@ interface ImportFromFolderDialogProps {
    * the switch again. Defaults to `false`.
    */
   initialReadInPlace?: boolean;
+  /** Android has no copy/import mode: selected books remain at their source paths. */
+  directOnly?: boolean;
   /**
    * Initial value for the "Auto-import new books from this folder" checkbox.
    * The caller seeds it from whether the shown folder is already in
@@ -177,6 +179,7 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
   initialSelectedGroupIds,
   initialMinSizeKB,
   initialReadInPlace = false,
+  directOnly = false,
   initialAutoImport = false,
   isRegisteredExternalRoot,
   watchedFolders = [],
@@ -230,7 +233,7 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
   const [view, setView] = useState<'import' | 'watched'>('import');
 
   const isRegisteredRoot = !!directory && (isRegisteredExternalRoot?.(directory) ?? false);
-  const readInPlace = readInPlaceChoice ?? (isRegisteredRoot || initialReadInPlace);
+  const readInPlace = directOnly || readInPlaceChoice || isRegisteredRoot || initialReadInPlace;
   const effectiveAutoImport = readInPlace && autoImport;
 
   /** Same normalization the caller matches watched roots with. */
@@ -462,14 +465,21 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
               'cursor-pointer hover:bg-base-200/50',
             )}
           >
-            <input
-              type='checkbox'
-              className='checkbox checkbox-sm mt-0.5'
-              checked={readInPlace}
-              onChange={(e) => setReadInPlaceChoice(e.target.checked)}
-            />
-                          <span className='select-none'>
-              <span className='block'>{_('Read directly from device storage')}</span>
+            {!directOnly && (
+              <input
+                type='checkbox'
+                className='checkbox checkbox-sm mt-0.5'
+                checked={readInPlace}
+                onChange={(e) => setReadInPlaceChoice(e.target.checked)}
+              />
+            )}
+            <span className='select-none'>
+              <span className='block'>
+                {_('Read directly from device storage')}
+                {directOnly && (
+                  <span className='text-primary ms-2 text-xs'>{_('Always on')}</span>
+                )}
+              </span>
 
               <span className='text-base-content/60 block text-xs'>
                 {isRegisteredRoot

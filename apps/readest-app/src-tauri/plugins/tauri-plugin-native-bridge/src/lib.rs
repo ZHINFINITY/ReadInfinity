@@ -84,6 +84,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::select_directory,
             commands::show_file_picker,
             commands::get_storefront_region_code,
+            commands::check_permissions,
             commands::request_manage_storage_permission,
             commands::set_sync_passphrase,
             commands::get_sync_passphrase,

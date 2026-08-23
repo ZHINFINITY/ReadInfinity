@@ -6,9 +6,10 @@ import { useTranslation } from '@/hooks/useTranslation';
 
 interface LibraryEmptyStateProps {
   onImport: (anchor: HTMLElement) => void;
+  onChooseFolder?: () => void;
 }
 
-const LibraryEmptyState: React.FC<LibraryEmptyStateProps> = ({ onImport }) => {
+const LibraryEmptyState: React.FC<LibraryEmptyStateProps> = ({ onImport, onChooseFolder }) => {
   const _ = useTranslation();
   const { appService } = useEnv();
   const isMobile = appService?.isMobile ?? false;
@@ -22,14 +23,23 @@ const LibraryEmptyState: React.FC<LibraryEmptyStateProps> = ({ onImport }) => {
         </h1>
         <p className='text-base-content/70 mb-12 text-pretty text-base leading-relaxed'>
           {isMobile
-            ? _('ReadInfinity scans your device for books automatically.')
-            : _('ReadInfinity scans your book folders automatically, or you can open a book manually.')}
+            ? _('ReadInfinity scans shared storage automatically. Choose your books folder for a faster, focused scan.')
+            : _('ReadInfinity scans your book folders automatically, or you can choose a folder to scan now.')}
         </p>
         <div className='flex w-full max-w-xs flex-col gap-3'>
+          {onChooseFolder && (
+            <button
+              type='button'
+              className='btn btn-primary h-11 min-h-11 rounded-lg'
+              onClick={onChooseFolder}
+            >
+              {_('Choose Books Folder')}
+            </button>
+          )}
           <button
             type='button'
             aria-haspopup='menu'
-            className='btn btn-primary h-11 min-h-11 rounded-lg'
+            className='btn btn-ghost h-11 min-h-11 rounded-lg'
             onClick={(event) => onImport(event.currentTarget)}
           >
             {_('Open a Book')}

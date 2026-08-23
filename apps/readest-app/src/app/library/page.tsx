@@ -1045,6 +1045,7 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
   const scanDeviceStorage = useCallback(async () => {
     if (
       !libraryLoaded ||
+      loading ||
       !appService?.isAndroidApp ||
       deviceStorageScanStartedRef.current ||
       deviceStorageScanInFlightRef.current
@@ -1067,15 +1068,20 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
         });
         return;
       }
-      const foundCount = await autoImportFromWatchedFolders(['/storage/emulated/0']);
+      const configuredBooksFolder =
+        typeof window !== 'undefined'
+          ? window.localStorage.getItem(LAST_IMPORT_FOLDER_KEY)?.trim()
+          : undefined;
+      const booksFolder = configuredBooksFolder || '/storage/emulated/0';
+      const foundCount = await autoImportFromWatchedFolders([booksFolder]);
       deviceStorageScanStartedRef.current = true;
       eventDispatcher.dispatch('toast', {
         type: 'info',
         timeout: 4000,
         message:
           foundCount > 0
-            ? _('Found {{count}} new books on device storage.', { count: foundCount })
-            : _('No new books found on device storage.'),
+            ? _('Found {{count}} new books in the selected folder.', { count: foundCount })
+            : _('No new books found in the selected folder.'),
       });
     } catch (error) {
       // Permission denial or an unavailable storage provider should not block
@@ -1085,7 +1091,7 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
     } finally {
       deviceStorageScanInFlightRef.current = false;
     }
-  }, [_, appService, autoImportFromWatchedFolders, libraryLoaded]);
+  }, [_, appService, autoImportFromWatchedFolders, libraryLoaded, loading]);
 
   useEffect(() => {
     void scanDeviceStorage();
@@ -1981,7 +1987,14 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
         ) : (
           <div className='hero drop-zone h-screen items-center justify-center'>
             <DropIndicator />
-            <LibraryEmptyState onImport={setImportMenuAnchor} />
+            <LibraryEmptyState
+              onImport={setImportMenuAnchor}
+              onChooseFolder={
+                appService?.canReadExternalDir
+                  ? () => void handleImportBooksFromDirectory()
+                  : undefined
+              }
+            />
           </div>
         ))}
       {importMenuAnchor && (
@@ -2028,6 +2041,7 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
           initialSelectedGroupIds={importFromFolderState.initialSelectedGroupIds}
           initialMinSizeKB={importFromFolderState.initialMinSizeKB}
           initialReadInPlace={importFromFolderState.initialReadInPlace}
+          directOnly={!!appService?.isAndroidApp}
           initialAutoImport={importFromFolderState.initialAutoImport}
           isRegisteredExternalRoot={isRegisteredExternalRoot}
           watchedFolders={watchedFolders}

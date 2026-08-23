@@ -230,6 +230,10 @@ impl<R: Runtime> NativeBridge<R> {
         Err(crate::Error::UnsupportedPlatformError)
     }
 
+    pub fn check_permissions(&self) -> crate::Result<RequestManageStoragePermissionResponse> {
+        Err(crate::Error::UnsupportedPlatformError)
+    }
+
     pub fn request_manage_storage_permission(
         &self,
     ) -> crate::Result<RequestManageStoragePermissionResponse> {

@@ -1190,6 +1190,25 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
     }
 
     @Command
+    fun checkPermissions(invoke: Invoke) {
+        val ret = JSObject()
+        val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Environment.isExternalStorageManager()
+        } else {
+            ContextCompat.checkSelfPermission(
+                activity,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(
+                    activity,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) == PackageManager.PERMISSION_GRANTED
+        }
+        ret.put("manageStorage", if (granted) "granted" else "denied")
+        invoke.resolve(ret)
+    }
+
+    @Command
     fun request_manage_storage_permission(invoke: Invoke) {
         val ret = JSObject()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
