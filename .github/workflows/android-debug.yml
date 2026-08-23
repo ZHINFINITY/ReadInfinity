@@ -83,6 +83,25 @@ jobs:
       - name: Initialize Android project
         run: pnpm --filter @readest/readest-app tauri android init
 
+      - name: Forward Android picker activity results
+        run: |
+          activity_file="$(find apps/readest-app/src-tauri/gen/android/app/src/main/java -name MainActivity.kt -print -quit)"
+          test -n "$activity_file"
+          if ! grep -q 'NativeBridgePlugin.deliverActivityResult' "$activity_file"; then
+            sed -i '/^import android.content.Intent$/a import com.readest.native_bridge.NativeBridgePlugin' "$activity_file"
+            last_line="$(awk 'NF { line = NR } END { print line }' "$activity_file")"
+            sed -i "${last_line}d" "$activity_file"
+            cat >> "$activity_file" <<'KOTLIN'
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        NativeBridgePlugin.deliverActivityResult(requestCode, resultCode, data)
+    }
+}
+KOTLIN
+          fi
+          tail -n 12 "$activity_file"
+
       - name: Select FOSS Android flavor
         run: |
           app_gradle="apps/readest-app/src-tauri/gen/android/app/build.gradle.kts"

@@ -107,6 +107,7 @@ interface GetExternalSDCardPathResponse {
 }
 
 export interface SelectDirectoryResponse {
+  requestId?: string;
   cancelled?: boolean;
   uri?: string;
   path?: string;
@@ -319,62 +320,57 @@ export async function selectDirectory(useEventQueue = false): Promise<SelectDire
   if (!useEventQueue) {
     return await invoke<SelectDirectoryResponse>('plugin:native-bridge|select_directory');
   }
-  // Android's DocumentsUI can destroy the Activity/WebView while the picker is
-  // open. Register the event first, then use both the replayable event and a
-  // persisted-result poll. The poll also handles native builds where the
-  // Activity result arrives after the original invoke promise is gone.
+
+  // DocumentsUI can destroy the Activity/WebView while it is open. The native
+  // command therefore resolves immediately and emits the eventual result.
+  // Registering first is essential: a fast cancellation or a result replayed
+  // during plugin load must not race the listener registration.
+  const requestId = `directory-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   let resolveEvent: (result: SelectDirectoryResponse) => void = () => undefined;
   const eventResult = new Promise<SelectDirectoryResponse>((resolve) => {
     resolveEvent = resolve;
   });
-  const listener: Promise<PluginListener> = addPluginListener<SelectDirectoryResponse>(
+  const listener = addPluginListener<SelectDirectoryResponse>(
     'native-bridge',
     DIRECTORY_PICKER_EVENT,
-    (payload) => resolveEvent(payload),
+    (payload) => {
+      if (payload?.requestId !== requestId) return;
+      resolveEvent(payload);
+    },
   );
-  // Do not launch DocumentsUI until the native listener is actually wired.
-  // Merely creating the listener promise is not sufficient on a cold WebView.
-  await listener.catch(() => undefined);
-  await invoke('plugin:native-bridge|clear_directory_picker_result').catch(() => undefined);
-  const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-  const pollResult = (async (): Promise<SelectDirectoryResponse> => {
-    for (let attempt = 0; attempt < 480; attempt += 1) {
-      try {
-        const result = await invoke<SelectDirectoryResponse & { pending?: boolean }>(
-          'plugin:native-bridge|get_directory_picker_result',
-        );
-        if (result?.pending) return result;
-      } catch {
-        // Older native builds do not expose the poll command; the event or
-        // original invoke response remains the fallback.
-        return await new Promise<never>(() => undefined);
-      }
-      await sleep(250);
-    }
-    return {
-      cancelled: true,
-      error: 'Timed out waiting for the Android folder picker result',
-    };
-  })();
+
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
-    const invokeResult: Promise<SelectDirectoryResponse> = invoke<SelectDirectoryResponse>(
-      'plugin:native-bridge|select_directory',
-    )
-      .then((result) => {
-        // Some older native builds resolve the launch invoke with undefined.
-        // Do not let that sentinel win the race over the real event/poll.
-        if (!result || typeof result !== 'object') return new Promise<never>(() => undefined);
-        return result;
-      })
-      .catch((error) => ({
-        cancelled: true,
-        error: error instanceof Error ? error.message : String(error),
-      }));
-    const result = await Promise.race([invokeResult, eventResult, pollResult]);
+    // Wait until Tauri has installed the native listener before launching
+    // ACTION_OPEN_DOCUMENT_TREE. Do not fall back to the removed polling API.
+    await listener;
+    await invoke<void>('plugin:native-bridge|show_directory_picker', {
+      payload: { requestId },
+    });
+
+    const timeoutResult = new Promise<SelectDirectoryResponse>((resolve) => {
+      timeoutId = setTimeout(
+        () =>
+          resolve({
+            requestId,
+            cancelled: true,
+            error: 'Timed out waiting for the Android folder picker result',
+          }),
+        120_000,
+      );
+    });
+    const result = await Promise.race([eventResult, timeoutResult]);
     const fallbackPath = localPathFromAndroidTreeUri(result.uri);
     return result.path || !fallbackPath ? result : { ...result, path: fallbackPath };
+  } catch (error) {
+    return {
+      requestId,
+      cancelled: true,
+      error: error instanceof Error ? error.message : String(error),
+    };
   } finally {
-    listener.then((l) => l.unregister());
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+    listener.then((l) => l.unregister()).catch(() => undefined);
   }
 }
 

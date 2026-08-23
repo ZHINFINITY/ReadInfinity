@@ -297,6 +297,18 @@ impl<R: Runtime> NativeBridge<R> {
             .run_mobile_plugin("select_directory", ())
             .map_err(Into::into)
     }
+
+    // Android only. Fire-and-forget: the selected folder is delivered through
+    // the replayable directory-picker-result plugin event after DocumentsUI
+    // returns, so no Rust invoke is held across the Activity round trip.
+    pub fn show_directory_picker(
+        &self,
+        payload: ShowDirectoryPickerRequest,
+    ) -> crate::Result<()> {
+        self.0
+            .run_mobile_plugin("show_directory_picker", payload)
+            .map_err(Into::into)
+    }
 }
 
 impl<R: Runtime> NativeBridge<R> {

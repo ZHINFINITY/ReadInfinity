@@ -222,6 +222,13 @@ impl<R: Runtime> NativeBridge<R> {
         Err(crate::Error::UnsupportedPlatformError)
     }
 
+    pub fn show_directory_picker(
+        &self,
+        _payload: ShowDirectoryPickerRequest,
+    ) -> crate::Result<()> {
+        Err(crate::Error::UnsupportedPlatformError)
+    }
+
     pub fn show_file_picker(&self) -> crate::Result<()> {
         Err(crate::Error::UnsupportedPlatformError)
     }

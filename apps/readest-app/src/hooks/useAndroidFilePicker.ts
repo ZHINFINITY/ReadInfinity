@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { addPluginListener, PluginListener } from '@tauri-apps/api/core';
 import { AppService } from '@/types/system';
+import { eventDispatcher } from '@/utils/event';
+import { stubTranslation as _ } from '@/utils/misc';
 import {
   FILE_SELECTION_PRESETS,
   SelectedFile,
@@ -58,9 +60,25 @@ export function useAndroidPickedBooks(
           const ext = name?.split('.').pop()?.toLowerCase() || 'unknown';
           return extensions.includes(ext);
         });
-        if (books.length > 0) {
-          onPickedBooksRef.current(books);
+        if (books.length === 0) {
+          eventDispatcher.dispatch('toast', {
+            type: 'warning',
+            timeout: 4000,
+            message: _('No supported book files were selected.'),
+          });
+          return;
         }
+        // A provider may return an absolute shared-storage path instead of a
+        // content URI. Grant that file path before ingest tries ranged reads;
+        // content URIs retain their persistable SAF grant and are handled by
+        // the native copy/open bridge when the provider is not filesystem-backed.
+        const nativePaths = books
+          .map(({ path }) => path)
+          .filter((path): path is string => !!path && path.startsWith('/'));
+        if (nativePaths.length > 0) {
+          await appService.allowPathsInScopes?.(nativePaths, false);
+        }
+        onPickedBooksRef.current(books);
       },
     );
 

@@ -132,6 +132,11 @@ class ShowLookupPopoverArgs {
 }
 
 @InvokeArg
+class ShowDirectoryPickerRequestArgs {
+    var requestId: String? = null
+}
+
+@InvokeArg
 class FetchProductsRequestArgs {
     val productIds: List<String>? = null
 }
@@ -297,9 +302,12 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
         private const val FILE_PICKER_REQUEST_CODE = 1003
         private const val DIRECTORY_PICKER_PREFS = "native_bridge_directory_picker"
         private const val DIRECTORY_PICKER_RESULT_KEY = "result"
+        private const val DIRECTORY_PICKER_REQUEST_ID_KEY = "request_id"
         var pendingInvoke: Invoke? = null
         private var pendingAuthCallbackTarget: OAuthCallbackTarget? = null
-        var pendingFolderPickerInvoke: Invoke? = null
+        // ACTION_OPEN_DOCUMENT_TREE is fire-and-forget. Keep only the request
+        // identity, never an Invoke, across the DocumentsUI Activity round trip.
+        private var pendingDirectoryPickerRequestId: String? = null
         // ACTION_OPEN_DOCUMENT_TREE can return while DocumentsUI is still
         // recreating the activity/WebView. Keep the result until the bridge is
         // loaded again and replay it through the one-shot event queue.
@@ -334,9 +342,19 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
         inputManager?.registerInputDeviceListener(gamepadInputListener, null)
         activity.application.registerActivityLifecycleCallbacks(lifecycleCallbacks)
         handleIntent(activity.intent)
+        var deliveredPendingDirectoryResult = false
         pendingDirectoryPickerResult?.let { (resultCode, data) ->
             pendingDirectoryPickerResult = null
-            handleDirectorySelected(data?.data, resultCode, data, null)
+            deliveredPendingDirectoryResult = true
+            val requestId = pendingDirectoryPickerRequestId
+                ?: activity.getSharedPreferences(DIRECTORY_PICKER_PREFS, Context.MODE_PRIVATE)
+                    .getString(DIRECTORY_PICKER_REQUEST_ID_KEY, null)
+            handleDirectorySelected(data?.data, resultCode, data, requestId)
+        }
+        if (!deliveredPendingDirectoryResult) {
+            readPersistedDirectoryPickerResult()?.let { result ->
+                emitOrQueue("directory-picker-result", result)
+            }
         }
         pendingFilePickerData?.let { data ->
             pendingFilePickerData = null
@@ -1333,46 +1351,21 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
         emitOrQueue("file-picker-result", payload)
     }
 
-        @Command
-    fun get_directory_picker_result(invoke: Invoke) {
-        val prefs = activity.getSharedPreferences(DIRECTORY_PICKER_PREFS, Context.MODE_PRIVATE)
-        val raw = prefs.getString(DIRECTORY_PICKER_RESULT_KEY, null)
-        if (raw == null) {
-            invoke.resolve(JSObject().apply { put("pending", false) })
+    @Command
+    fun show_directory_picker(invoke: Invoke) {
+        val args = invoke.parseArgs(ShowDirectoryPickerRequestArgs::class.java)
+        val requestId = args.requestId?.trim()
+        if (requestId.isNullOrEmpty()) {
+            invoke.reject("Missing directory picker requestId")
             return
         }
-        prefs.edit().remove(DIRECTORY_PICKER_RESULT_KEY).apply()
-        try {
-            val json = JSONObject(raw)
-            val result = JSObject().apply {
-                put("pending", true)
-                put("cancelled", json.optBoolean("cancelled", true))
-                if (json.isNull("uri")) put("uri", null) else put("uri", json.optString("uri"))
-                if (json.isNull("path")) put("path", null) else put("path", json.optString("path"))
-                if (json.isNull("error")) put("error", null) else put("error", json.optString("error"))
-            }
-            invoke.resolve(result)
-        } catch (e: Exception) {
-            invoke.resolve(JSObject().apply {
-                put("pending", true)
-                put("cancelled", true)
-                put("error", "Invalid saved folder result: ${e.message}")
-            })
-        }
-    }
 
-    @Command
-    fun clear_directory_picker_result(invoke: Invoke) {
+        pendingDirectoryPickerRequestId = requestId
         activity.getSharedPreferences(DIRECTORY_PICKER_PREFS, Context.MODE_PRIVATE)
             .edit()
+            .putString(DIRECTORY_PICKER_REQUEST_ID_KEY, requestId)
             .remove(DIRECTORY_PICKER_RESULT_KEY)
             .apply()
-        invoke.resolve()
-    }
-
-    @Command
-    fun select_directory(invoke: Invoke) {
-        pendingFolderPickerInvoke = invoke
 
         try {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
@@ -1384,25 +1377,30 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
                 )
             }
             activity.startActivityForResult(intent, FOLDER_PICKER_REQUEST_CODE)
+            // Never retain this Invoke across DocumentsUI. The result is
+            // delivered later as a requestId-tagged plugin event.
+            invoke.resolve()
         } catch (e: Exception) {
-            pendingFolderPickerInvoke = null
+            pendingDirectoryPickerRequestId = null
             val result = JSObject().apply {
+                put("requestId", requestId)
                 put("cancelled", true)
-                put("uri", null)
-                put("path", null)
-                put("error", e.message)
+                put("uri", JSONObject.NULL)
+                put("path", JSONObject.NULL)
+                put("error", e.message ?: "Failed to open folder picker")
             }
-            persistDirectoryPickerResult(true, null, null, e.message)
-            invoke.resolve(result)
+            persistDirectoryPickerResult(requestId, true, null, null, e.message)
+            invoke.resolve()
             emitOrQueue("directory-picker-result", result)
         }
     }
 
     fun handleActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == FOLDER_PICKER_REQUEST_CODE) {
-            val invoke = pendingFolderPickerInvoke
-            pendingFolderPickerInvoke = null
-            handleDirectorySelected(data?.data, resultCode, data, invoke)
+            val requestId = pendingDirectoryPickerRequestId
+                ?: activity.getSharedPreferences(DIRECTORY_PICKER_PREFS, Context.MODE_PRIVATE)
+                    .getString(DIRECTORY_PICKER_REQUEST_ID_KEY, null)
+            handleDirectorySelected(data?.data, resultCode, data, requestId)
         } else if (requestCode == FILE_PICKER_REQUEST_CODE) {
             if (resultCode == Activity.RESULT_OK && data != null) {
                 emitFilePickerResult(data)
@@ -1411,12 +1409,14 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
     }
 
     private fun persistDirectoryPickerResult(
+        requestId: String?,
         cancelled: Boolean,
         uri: Uri?,
         path: String?,
         error: String?,
     ) {
         val json = JSONObject().apply {
+            put("requestId", requestId ?: JSONObject.NULL)
             put("cancelled", cancelled)
             put("uri", uri?.toString() ?: JSONObject.NULL)
             put("path", path ?: JSONObject.NULL)
@@ -1425,29 +1425,53 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
         activity.getSharedPreferences(DIRECTORY_PICKER_PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(DIRECTORY_PICKER_RESULT_KEY, json.toString())
+            .remove(DIRECTORY_PICKER_REQUEST_ID_KEY)
             .apply()
+    }
+
+    private fun readPersistedDirectoryPickerResult(): JSObject? {
+        val prefs = activity.getSharedPreferences(DIRECTORY_PICKER_PREFS, Context.MODE_PRIVATE)
+        val raw = prefs.getString(DIRECTORY_PICKER_RESULT_KEY, null) ?: return null
+        prefs.edit().remove(DIRECTORY_PICKER_RESULT_KEY).remove(DIRECTORY_PICKER_REQUEST_ID_KEY).apply()
+        return try {
+            val json = JSONObject(raw)
+            JSObject().apply {
+                put("requestId", if (json.isNull("requestId")) JSONObject.NULL else json.optString("requestId"))
+                put("cancelled", json.optBoolean("cancelled", true))
+                put("uri", if (json.isNull("uri")) JSONObject.NULL else json.optString("uri"))
+                put("path", if (json.isNull("path")) JSONObject.NULL else json.optString("path"))
+                put("error", if (json.isNull("error")) JSONObject.NULL else json.optString("error"))
+            }
+        } catch (e: Exception) {
+            JSObject().apply {
+                put("requestId", JSONObject.NULL)
+                put("cancelled", true)
+                put("error", "Invalid saved folder result: ${e.message}")
+            }
+        }
     }
 
     private fun handleDirectorySelected(
         uri: Uri?,
         resultCode: Int,
         resultIntent: Intent?,
-        invoke: Invoke?,
+        requestId: String?,
     ) {
         val result = JSObject()
         val cancelled = resultCode != Activity.RESULT_OK || uri == null
         var path: String? = null
         var error: String? = null
+        result.put("requestId", requestId ?: JSONObject.NULL)
         if (cancelled) {
             result.put("cancelled", true)
-            result.put("uri", uri?.toString())
-            result.put("path", null)
+            result.put("uri", uri?.toString() ?: JSONObject.NULL)
+            result.put("path", JSONObject.NULL)
         } else {
             val selectedUri = uri ?: return
             path = extractPathFromUri(selectedUri)
             result.put("cancelled", false)
             result.put("uri", selectedUri.toString())
-            result.put("path", path)
+            result.put("path", path ?: JSONObject.NULL)
             // Persist only the URI grant flags actually returned by
             // DocumentsUI. Requesting WRITE when the provider granted READ
             // only throws and used to make a valid folder look cancelled.
@@ -1467,8 +1491,8 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
             }
             if (error != null) result.put("error", error)
         }
-        persistDirectoryPickerResult(cancelled, uri, path, error)
-        invoke?.resolve(result)
+        pendingDirectoryPickerRequestId = null
+        persistDirectoryPickerResult(requestId, cancelled, uri, path, error)
         emitOrQueue("directory-picker-result", result)
     }
 

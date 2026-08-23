@@ -311,7 +311,15 @@ pub struct ShowLookupPopoverResponse {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ShowDirectoryPickerRequest {
+    pub request_id: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SelectDirectoryResponse {
+    #[serde(default)]
+    pub request_id: Option<String>,
     pub cancelled: Option<bool>,
     pub uri: Option<String>,
     pub path: Option<String>,

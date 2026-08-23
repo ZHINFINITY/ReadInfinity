@@ -253,6 +253,14 @@ pub(crate) async fn select_directory<R: Runtime>(
 }
 
 #[command]
+pub(crate) async fn show_directory_picker<R: Runtime>(
+    app: AppHandle<R>,
+    payload: ShowDirectoryPickerRequest,
+) -> Result<()> {
+    app.native_bridge().show_directory_picker(payload)
+}
+
+#[command]
 pub(crate) async fn show_file_picker<R: Runtime>(app: AppHandle<R>) -> Result<()> {
     app.native_bridge().show_file_picker()
 }

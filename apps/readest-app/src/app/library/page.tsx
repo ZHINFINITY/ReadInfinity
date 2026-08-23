@@ -1276,7 +1276,14 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
       // or process while the picker is in the foreground (#1217). Open the
       // native-bridge picker fire-and-forget instead; results arrive through
       // the replayable `file-picker-result` event consumed below.
-      showFilePicker().catch((err) => console.error('Failed to open file picker:', err));
+      showFilePicker().catch((err) => {
+        console.error('Failed to open file picker:', err);
+        eventDispatcher.dispatch('toast', {
+          type: 'error',
+          timeout: 5000,
+          message: _('Could not open the Android file picker. Please try again.'),
+        });
+      });
       return;
     }
     selectFiles({ type: 'books', multiple: true }).then((result) => {
