@@ -357,7 +357,9 @@ export async function selectDirectory(useEventQueue = false): Promise<SelectDire
     };
   })();
   try {
-    const invokeResult = invoke<SelectDirectoryResponse>('plugin:native-bridge|select_directory')
+    const invokeResult: Promise<SelectDirectoryResponse> = invoke<SelectDirectoryResponse>(
+      'plugin:native-bridge|select_directory',
+    )
       .then((result) => {
         // Some older native builds resolve the launch invoke with undefined.
         // Do not let that sentinel win the race over the real event/poll.
