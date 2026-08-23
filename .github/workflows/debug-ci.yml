@@ -73,6 +73,9 @@ jobs:
         run: pnpm --filter @readest/readest-app exec tsc --noEmit -p tsconfig.offline-ci.json
 
       - name: Run the ingestion regression tests
+        env:
+          NEXT_PUBLIC_DEFAULT_SUPABASE_URL_BASE64: aHR0cHM6Ly9sb2NhbGhvc3Q=
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: offline-ci-test-key
         run: pnpm --filter @readest/readest-app exec vitest run src/__tests__/services/ingest-service.test.ts
 
   debug-build:
