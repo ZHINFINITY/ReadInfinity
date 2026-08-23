@@ -89,18 +89,23 @@ jobs:
       - name: Build Android debug APK
         run: pnpm --filter @readest/readest-app tauri android build --debug -t aarch64 -- --features devtools
 
-      - name: Locate APK
+      - name: Locate and verify arm64-v8a APK
         id: apk
         run: |
-          apk_path="$(find apps/readest-app/src-tauri/gen/android -type f -path '*/build/outputs/apk/*/*.apk' | head -n 1)"
+          apk_path="$(find apps/readest-app/src-tauri/gen/android -type f -name 'app-universal-debug.apk' | head -n 1)"
           test -n "$apk_path"
+          unzip -l "$apk_path" | grep -q 'lib/arm64-v8a/'
+          if unzip -l "$apk_path" | grep -Eq 'lib/(armeabi-v7a|x86|x86_64)/'; then
+            echo 'Unexpected non-arm64 native library found in APK'
+            exit 1
+          fi
           echo "path=$apk_path" >> "$GITHUB_OUTPUT"
-          echo "Found $apk_path"
+          echo "Verified arm64-v8a-only APK: $apk_path"
 
-      - name: Upload Android debug APK
+      - name: Upload Android arm64-v8a debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: readinfinity-android-debug-${{ github.sha }}
+          name: readinfinity-android-arm64-v8a-debug-${{ github.sha }}
           path: ${{ steps.apk.outputs.path }}
           if-no-files-found: error
           retention-days: 14

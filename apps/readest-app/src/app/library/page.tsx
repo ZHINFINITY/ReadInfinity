@@ -279,9 +279,12 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
   // `allowPathsInScopes` call makes tauri-plugin-persisted-scope rewrite its
   // whole state file on the main thread, so grant once, not on every focus
   // scan (issue #5494).
-  const autoImportGrantedFoldersRef = useRef<Set<string>>(new Set());
-
+    const autoImportGrantedFoldersRef = useRef<Set<string>>(new Set());
+  // Prevent repeated Android permission prompts and duplicate full-storage scans
+  // during React remounts or library navigation within the same app session.
+  const deviceStorageScanStartedRef = useRef(false);
   const getScrollKey = (group: string) => `library-scroll-${group || 'all'}`;
+
 
   const saveScrollPosition = (group: string) => {
     if (scrollRef.current) {
@@ -1029,6 +1032,40 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
     folders: settings.autoImportFolders ?? [],
     scanAndImport: autoImportFromWatchedFolders,
   });
+
+  // ReadInfinity is local-first: on Android, request the existing native
+  // storage permission once and scan shared internal storage automatically.
+  // The native read_dir command is recursive and returns only supported book
+  // extensions, while importBooks deduplicates against existing source paths.
+  useEffect(() => {
+    if (
+      !libraryLoaded ||
+      !appService?.isAndroidApp ||
+      deviceStorageScanStartedRef.current
+    ) {
+      return;
+    }
+    deviceStorageScanStartedRef.current = true;
+    let cancelled = false;
+    const scanDeviceStorage = async () => {
+      try {
+        const granted = await requestStoragePermission();
+        if (!granted || cancelled) return;
+        await autoImportFromWatchedFolders(['/storage/emulated/0']);
+      } catch (error) {
+        // Permission denial or an unavailable storage provider should not block
+        // the library; the manual local picker remains available.
+        console.warn('Automatic device-storage scan unavailable:', error);
+      }
+    };
+    void scanDeviceStorage();
+    return () => {
+      cancelled = true;
+    };
+    // The scan intentionally runs once after the Android app service and
+    // persisted library are ready; focus rescans are handled separately.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appService, libraryLoaded]);
 
   // Queue downloads (the TransferQueuePanel path) report progress into the
   // transfer store instead of through this hook. Bookshelf reads them straight

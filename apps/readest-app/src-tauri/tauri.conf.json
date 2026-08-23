@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Readest",
-  "mainBinaryName": "readest",
-  "identifier": "com.bilingify.readest",
+  "productName": "ReadInfinity",
+  "mainBinaryName": "readinfinity",
+  "identifier": "com.infinity.readi",
   "version": "../package.json",
   "build": {
     "frontendDist": "../out",

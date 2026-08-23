@@ -206,6 +206,16 @@ export const themes = [
       dark: generateDarkPalette({ fg: '#f6e1d7', bg: '#3c2b25', primary: '#ff9c94' }),
     },
   },
+  {
+    name: 'amoled',
+    label: _('AMOLED Black'),
+    colors: {
+      // Keep the light variant usable when the theme mode is switched to light,
+      // while the dark variant uses true black for OLED pixel-off backgrounds.
+      light: generateLightPalette({ fg: '#171717', bg: '#ffffff', primary: '#245cff' }),
+      dark: generateDarkPalette({ fg: '#f5f7ff', bg: '#000000', primary: '#8ab4f8' }),
+    },
+  },
 ] as Theme[];
 
 const generateCustomThemeVariables = (palette: Palette, fallbackIncluded = false): string => {

@@ -111,9 +111,9 @@ export function getPlanDetails(
         interval: interval === 'month' ? _('month') : _('year'),
         features: [
           {
-            label: _('Cross-Platform Sync'),
+            label: _('Local Library'),
             description: _(
-              'Seamlessly sync your library, progress, highlights, and notes across all your devices—never lose your place again.',
+              'Keep your books, reading progress, highlights, and notes on this device for private offline reading.',
             ),
           },
           {

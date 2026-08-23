@@ -10,20 +10,6 @@ vi.mock('@/hooks/useTranslation', () => ({
   },
 }));
 
-const useAuthMock = vi.fn();
-vi.mock('@/context/AuthContext', () => ({
-  useAuth: () => useAuthMock(),
-}));
-
-const navigateToLoginMock = vi.fn();
-const routerStub = { push: vi.fn(), replace: vi.fn(), back: vi.fn() };
-vi.mock('@/hooks/useAppRouter', () => ({
-  useAppRouter: () => routerStub,
-}));
-vi.mock('@/utils/nav', () => ({
-  navigateToLogin: (...args: unknown[]) => navigateToLoginMock(...args),
-}));
-
 const useEnvMock = vi.fn();
 vi.mock('@/context/EnvContext', () => ({
   useEnv: () => useEnvMock(),
@@ -31,48 +17,34 @@ vi.mock('@/context/EnvContext', () => ({
 
 afterEach(() => {
   cleanup();
-  useAuthMock.mockReset();
-  navigateToLoginMock.mockReset();
   useEnvMock.mockReset();
 });
 
 describe('LibraryEmptyState', () => {
-  it('renders title, desktop description, and both CTAs when logged out on desktop', () => {
+  it('renders the offline desktop description without a sync-login control', () => {
     useEnvMock.mockReturnValue({ appService: { isMobile: false } });
-    useAuthMock.mockReturnValue({ user: null });
     render(<LibraryEmptyState onImport={vi.fn()} />);
 
     expect(screen.getByRole('heading', { name: 'Start your library' })).toBeTruthy();
-    expect(screen.getByText(/drop a book anywhere on this window/i)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Import Books' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Sign in to sync your library' })).toBeTruthy();
+    expect(screen.getByText(/scans your book folders automatically/i)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Open a Book' })).toBeTruthy();
+    expect(screen.queryByText(/sign in to sync/i)).toBeNull();
   });
 
-  it('renders mobile description (no drag-drop language) when appService.isMobile', () => {
+  it('renders mobile automatic-scan description without import instructions', () => {
     useEnvMock.mockReturnValue({ appService: { isMobile: true } });
-    useAuthMock.mockReturnValue({ user: null });
     render(<LibraryEmptyState onImport={vi.fn()} />);
 
-    expect(screen.getByText(/pick a book from your device/i)).toBeTruthy();
-    expect(screen.queryByText(/drop a book anywhere on this window/i)).toBeNull();
+    expect(screen.getByText(/scans your device for books automatically/i)).toBeTruthy();
+    expect(screen.queryByText(/pick a book from your device/i)).toBeNull();
   });
 
-  it('hides the sync button when the user is logged in', () => {
+  it('calls onImport when the local open button is clicked', () => {
     useEnvMock.mockReturnValue({ appService: { isMobile: false } });
-    useAuthMock.mockReturnValue({ user: { id: 'stub-user' } });
-    render(<LibraryEmptyState onImport={vi.fn()} />);
-
-    expect(screen.getByRole('button', { name: 'Import Books' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Sign in to sync your library' })).toBeNull();
-  });
-
-  it('calls onImport when the Import Books button is clicked', () => {
-    useEnvMock.mockReturnValue({ appService: { isMobile: false } });
-    useAuthMock.mockReturnValue({ user: null });
     const handleImport = vi.fn();
     render(<LibraryEmptyState onImport={handleImport} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Import Books' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open a Book' }));
 
     expect(handleImport).toHaveBeenCalledTimes(1);
   });
