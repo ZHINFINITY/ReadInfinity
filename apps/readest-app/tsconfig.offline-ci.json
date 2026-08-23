@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "out",
+    "src/__tests__/**",
+    "src/app/api/**",
+    "src/app/auth/**",
+    "src/utils/simplecc.ts"
+  ]
+}

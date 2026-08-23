@@ -67,7 +67,7 @@ jobs:
           apps/readest-app/src/__tests__/services/ingest-service.test.ts
 
       - name: Type-check the app
-        run: pnpm --filter @readest/readest-app exec tsc --noEmit -p tsconfig.json
+        run: pnpm --filter @readest/readest-app exec tsc --noEmit -p tsconfig.offline-ci.json
 
       - name: Run the ingestion regression tests
         run: pnpm --filter @readest/readest-app exec vitest run src/__tests__/services/ingest-service.test.ts
