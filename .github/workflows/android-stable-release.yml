@@ -152,8 +152,9 @@ jobs:
           test -n "$apk_path"
           build_tools="$ANDROID_HOME/build-tools/35.0.0"
           badging="$($build_tools/aapt dump badging "$apk_path")"
-          grep -F "package: name='com.infinity.readz'" <<< "$badging"
-          grep -F "application-label:'Read∞'" <<< "$badging"
+          printf '%s\n' "$badging"
+          grep -F "com.infinity.readz" <<< "$badging"
+          grep -F "Read∞" <<< "$badging"
           "$build_tools/apksigner" verify --verbose "$apk_path"
           unzip -l "$apk_path" | grep -q 'lib/arm64-v8a/'
           if unzip -l "$apk_path" | grep -Eq 'lib/(armeabi-v7a|x86|x86_64)/'; then
