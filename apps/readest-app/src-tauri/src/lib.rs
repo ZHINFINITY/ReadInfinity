@@ -53,7 +53,7 @@ use tauri_plugin_oauth::start;
 use tauri_plugin_opener::OpenerExt;
 use transfer_file::{download_file, upload_file};
 
-#[cfg(any(desktop, target_os = "ios"))]
+#[cfg(any(desktop, target_os = "ios", target_os = "android"))]
 fn allow_file_in_scopes(app: &AppHandle, files: Vec<PathBuf>) {
     let fs_scope = app.fs_scope();
     let asset_protocol_scope = app.asset_protocol_scope();
@@ -175,9 +175,22 @@ fn allow_paths_in_scopes(_app: AppHandle, _paths: Vec<String>, _is_directory: bo
     }
     #[cfg(target_os = "android")]
     {
-        // Android picker already routes through register_select_directory_callback
-        // for directories; files go through SAF / content-URIs and don't use
-        // asset_protocol_scope. Nothing to do here.
+        // MANAGE_EXTERNAL_STORAGE lets the Android process read shared storage,
+        // but Tauri's fs and custom rangefile layers still enforce their own
+        // runtime scopes. Grant the selected root before the scanner returns
+        // absolute paths; otherwise discovery succeeds and every later book
+        // open fails with an `allow-open` capability error.
+        for raw in _paths {
+            if raw.is_empty() {
+                continue;
+            }
+            let path = PathBuf::from(&raw);
+            if _is_directory {
+                allow_dir_in_scopes(&_app, &path);
+            } else {
+                allow_file_in_scopes(&_app, vec![path]);
+            }
+        }
     }
 }
 
