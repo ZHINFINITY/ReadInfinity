@@ -121,8 +121,13 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
           <div className='border-base-300 mt-8 border-t pt-6'>
             <p className='text-base-content/60 text-sm'>
               {_('Need help?')}{' '}
-              <a href='mailto:support@readest.com' className='link link-primary'>
-                {_('Contact Support')}
+              <a
+                href='https://github.com/ZHINFINITY/readinfinity/issues'
+                className='link link-primary'
+                target='_blank'
+                rel='noreferrer'
+              >
+                {_('Open Read∞ Issues')}
               </a>
             </p>
           </div>

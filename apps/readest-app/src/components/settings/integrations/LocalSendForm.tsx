@@ -69,7 +69,7 @@ const LocalSendForm: React.FC<LocalSendFormProps> = ({ onBack }) => {
         parentLabel={_('Integrations')}
         currentLabel={_('LocalSend')}
         description={_(
-          'Send and receive books with LocalSend apps and other Readest devices on your local network.',
+          'Send and receive books with LocalSend apps and other Read∞ devices on your local network.',
         )}
         onBack={onBack}
       />
@@ -77,7 +77,7 @@ const LocalSendForm: React.FC<LocalSendFormProps> = ({ onBack }) => {
       <BoxedList>
         <SettingsSwitchRow
           label={_('Enable LocalSend')}
-          description={_('Receive books while Readest is open')}
+          description={_('Receive books while Read∞ is open')}
           checked={enabled}
           onChange={toggleEnabled}
           data-setting-id='settings.integrations.localsend.enabled'

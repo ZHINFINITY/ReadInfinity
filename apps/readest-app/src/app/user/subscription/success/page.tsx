@@ -432,7 +432,17 @@ const SuccessPageWithSearchParams = () => {
 
         {/* Additional Info */}
         <div className='mt-8 text-xs text-gray-500'>
-          <p>{_('Need help? Contact our support team at support@readest.com')}</p>
+          <p>
+            {_('Need help? ')}
+            <a
+              href='https://github.com/ZHINFINITY/readinfinity/issues'
+              className='underline'
+              target='_blank'
+              rel='noreferrer'
+            >
+              {_('Open Read∞ Issues')}
+            </a>
+          </p>
         </div>
       </div>
     </div>

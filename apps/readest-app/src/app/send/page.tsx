@@ -117,7 +117,7 @@ export default function SendPage() {
   if (!user) {
     return (
       <div className='mx-auto flex max-w-[560px] flex-col items-center px-4 py-16 text-center'>
-        <h1 className='text-xl font-semibold'>{_('Send to Readest')}</h1>
+        <h1 className='text-xl font-semibold'>{_('Send to Read∞')}</h1>
         <p className='text-base-content/70 mt-2 text-sm'>
           {_('Sign in to send books and articles to your library.')}
         </p>
@@ -128,7 +128,7 @@ export default function SendPage() {
   return (
     <div className='mx-auto flex max-w-[560px] flex-col gap-6 px-4 py-10'>
       <header>
-        <h1 className='text-xl font-semibold tracking-tight'>{_('Send to Readest')}</h1>
+        <h1 className='text-xl font-semibold tracking-tight'>{_('Send to Read∞')}</h1>
         <p className='text-base-content/70 mt-1 text-sm'>
           {_('Drop a book or document, or paste an article link. It syncs to all your devices.')}
         </p>

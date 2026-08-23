@@ -53,25 +53,19 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const ogImage = `${READEST_WEB_BASE_URL}/api/share/${token}/og.png`;
 
   return {
-    title: `${share.bookTitle} · Shared via Readest`,
-    description: share.bookAuthor
-      ? `${share.bookAuthor} · Shared via Readest`
-      : 'Shared via Readest',
+    title: `${share.bookTitle} · Shared via Read∞`,
+    description: share.bookAuthor ? `${share.bookAuthor} · Shared via Read∞` : 'Shared via Read∞',
     openGraph: {
       type: 'book',
       url: shareUrl,
       title: share.bookTitle,
-      description: share.bookAuthor
-        ? `${share.bookAuthor} · Shared via Readest`
-        : 'Shared via Readest',
+      description: share.bookAuthor ? `${share.bookAuthor} · Shared via Read∞` : 'Shared via Read∞',
       images: [{ url: ogImage, width: 1200, height: 630 }],
     },
     twitter: {
       card: 'summary_large_image',
       title: share.bookTitle,
-      description: share.bookAuthor
-        ? `${share.bookAuthor} · Shared via Readest`
-        : 'Shared via Readest',
+      description: share.bookAuthor ? `${share.bookAuthor} · Shared via Read∞` : 'Shared via Read∞',
       images: [ogImage],
     },
   };

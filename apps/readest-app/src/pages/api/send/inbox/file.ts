@@ -113,7 +113,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: countError.message });
   }
   if ((count ?? 0) >= SEND_INBOX_PENDING_LIMIT) {
-    return res.status(429).json({ error: 'Inbox is full — open Readest to process pending items' });
+    return res.status(429).json({ error: 'Inbox is full — open Read∞ to process pending items' });
   }
 
   let body: Buffer;
