@@ -1,0 +1,95 @@
+name: ReadInfinity Android Debug APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-debug-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-android-debug:
+    name: Build arm64 Android debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_DEFAULT_SUPABASE_URL_BASE64: aHR0cHM6Ly9sb2NhbGhvc3Q=
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: offline-ci-test-key
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Restore workspace source dependencies
+        run: |
+          git clone --depth 1 https://github.com/readest/foliate-js.git packages/foliate-js
+          git clone --depth 1 https://github.com/readest/simplecc-wasm.git packages/simplecc-wasm
+          git clone --depth 1 https://github.com/readest/js-mdict.git packages/js-mdict
+          git clone --depth 1 https://github.com/readest/tauri.git packages/tauri
+          git clone --depth 1 https://github.com/readest/tauri-plugins-workspace.git packages/tauri-plugins
+          git clone --depth 1 https://github.com/mozilla/pdf.js.qcms.git packages/qcms
+          git clone --depth 1 https://github.com/readest/tao.git packages/tao
+          git clone --depth 1 https://github.com/readest/tauri-plugin-turso.git apps/readest-app/src-tauri/plugins/tauri-plugin-turso
+          git clone --depth 1 https://github.com/readest/tauri-plugin-webview-upgrade.git apps/readest-app/src-tauri/plugins/tauri-plugin-webview-upgrade
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install JavaScript dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare local reader vendors
+        run: pnpm --filter @readest/readest-app setup-vendors
+
+      - name: Build Android debug APK
+        run: pnpm --filter @readest/readest-app tauri android build --debug -t aarch64 -- --features devtools
+
+      - name: Locate APK
+        id: apk
+        run: |
+          apk_path="$(find apps/readest-app/src-tauri/gen/android -type f -path '*/build/outputs/apk/*/*.apk' | head -n 1)"
+          test -n "$apk_path"
+          echo "path=$apk_path" >> "$GITHUB_OUTPUT"
+          echo "Found $apk_path"
+
+      - name: Upload Android debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: readinfinity-android-debug-${{ github.sha }}
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+          retention-days: 14
