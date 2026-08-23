@@ -27,7 +27,7 @@ const FailedImportsDialog: React.FC<FailedImportsDialogProps> = ({ failedImports
   return (
     <Dialog
       isOpen
-      title={_('Failed to import {{count}} books', { count: failedImports.length })}
+      title={_('Could not add {{count}} books', { count: failedImports.length })}
       onClose={onClose}
       boxClassName='sm:min-w-[440px] sm:max-w-[460px] sm:!h-auto sm:max-h-[80%]'
       contentClassName='!my-0 !px-5 !pt-0 !pb-4 !flex-grow-0'

@@ -7,29 +7,27 @@ import Providers from '@/components/Providers';
 
 import '../styles/globals.css';
 
-const url = 'https://web.readest.com/';
-const title = 'Readest — Where You Read, Digest and Get Insight';
+const url = 'https://github.com/ZHINFINITY/readinfinity';
+const title = 'ReadInfinity — Offline reading, directly from your device';
 const description =
-  'Discover Readest, the ultimate online ebook reader for immersive and organized reading. ' +
-  'Enjoy seamless access to your digital library, powerful tools for highlighting, bookmarking, ' +
-  'and note-taking, and support for multiple book views. ' +
-  'Perfect for deep reading, analysis, and understanding. Explore now!';
-const previewImage = 'https://cdn.readest.com/images/open_graph_preview_read_now.png';
+  'ReadInfinity is an offline ebook reader for reading books directly from device storage, ' +
+  'with local library metadata, notes, highlighting, and dictionary support.';
+const previewImage = '/icon.png';
 
 export const metadata: Metadata = {
   metadataBase: new URL(url),
   title: {
     default: title,
-    template: '%s | Readest',
+    template: '%s | ReadInfinity',
   },
   description,
   generator: 'Next.js',
   manifest: '/manifest.json',
-  keywords: ['epub', 'pdf', 'ebook', 'reader', 'readest', 'pwa'],
+  keywords: ['epub', 'pdf', 'ebook', 'reader', 'offline', 'ReadInfinity'],
   authors: [
     {
-      name: 'readest',
-      url: 'https://github.com/readest/readest',
+      name: 'ReadInfinity',
+      url: 'https://github.com/ZHINFINITY/readinfinity',
     },
   ],
   icons: {
@@ -38,7 +36,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: 'Readest',
+    title: 'ReadInfinity',
     statusBarStyle: 'default',
   },
   openGraph: {
@@ -56,7 +54,6 @@ export const metadata: Metadata = {
   },
   other: {
     'apple-mobile-web-app-capable': 'yes',
-    'twitter:domain': 'web.readest.com',
     'twitter:url': url,
   },
 };

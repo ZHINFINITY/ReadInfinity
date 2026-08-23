@@ -49,6 +49,15 @@ html[data-page='reader'] {
   background: theme('colors.base-100');
 }
 
+/* AMOLED Black turns the app and page shells into true OLED black. Keep the
+ * palette's slightly lighter control surfaces intact for contrast. */
+html[data-theme='amoled-dark'],
+html[data-theme='amoled-dark'] body,
+html[data-theme='amoled-dark'] .library-page,
+html[data-theme='amoled-dark'] .settings-dialog-box {
+  background-color: #000 !important;
+}
+
 body {
   border-radius: 10px;
   background-color: transparent;

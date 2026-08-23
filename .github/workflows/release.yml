@@ -1,9 +1,6 @@
-name: Release Readest
-
+name: ReadInfinity Legacy Release (manual only)
 on:
   workflow_dispatch:
-  release:
-    types: [published]
 
 permissions: read-all
 

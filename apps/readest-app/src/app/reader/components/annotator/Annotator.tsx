@@ -125,20 +125,12 @@ const Annotator: React.FC<{ bookKey: string; contentInsets: Insets }> = ({
     useNotebookStore();
   const { clearBooknotesNav, isSideBarVisible } = useSidebarStore();
   const { listenToNativeTouchEvents } = useDeviceControlStore();
-  const { loadCustomDictionaries } = useCustomDictionaryStore();
   const { selectFiles } = useFileSelector(appService, _);
 
   useNotesSync(bookKey);
   useBookOrbitNotesSync(bookKey);
   useReadwiseSync(bookKey);
   useHardcoverSync(bookKey);
-
-  useEffect(() => {
-    void loadCustomDictionaries(envConfig).catch((error) => {
-      console.warn('Failed to load custom dictionaries:', error);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const osPlatform = getOSPlatform();
   const config = getConfig(bookKey)!;
@@ -1729,7 +1721,7 @@ const Annotator: React.FC<{ bookKey: string; contentInsets: Insets }> = ({
       accept: '.json,application/json',
       extensions: ['json'],
       multiple: false,
-      dialogTitle: _('Select Readest Annotations File'),
+      dialogTitle: _('Select Annotations File'),
     });
     if (result.error || result.files.length === 0) return;
 
@@ -1747,7 +1739,7 @@ const Annotator: React.FC<{ bookKey: string; contentInsets: Insets }> = ({
     if (!payload) {
       eventDispatcher.dispatch('toast', {
         type: 'warning',
-        message: _('This is not a Readest annotations file.'),
+        message: _('This is not a compatible annotations file.'),
         timeout: 3000,
       });
       return;

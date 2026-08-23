@@ -1,0 +1,230 @@
+name: ReadInfinity Stable Android arm64 Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Public release tag'
+        required: true
+        default: 'readinfinity-v0.12.1'
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+env:
+  NEXT_PUBLIC_APP_PLATFORM: tauri
+  NEXT_PUBLIC_FEATURE_ENABLE_AI: '0'
+  NEXT_PUBLIC_FEATURE_ENABLE_CLOUD: '0'
+  NEXT_PUBLIC_FEATURE_ENABLE_SYNC: '0'
+  NEXT_PUBLIC_FEATURE_ENABLE_TELEMETRY: '0'
+  NEXT_PUBLIC_DEFAULT_SUPABASE_URL_BASE64: aHR0cHM6Ly9sb2NhbGhvc3Q=
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: offline-release-test-key
+  CARGO_PROFILE_RELEASE_DEBUG: '0'
+  CARGO_PROFILE_RELEASE_STRIP: symbols
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Restore workspace source dependencies
+        run: |
+          git clone --depth 1 https://github.com/readest/foliate-js.git packages/foliate-js
+          git clone --depth 1 https://github.com/readest/simplecc-wasm.git packages/simplecc-wasm
+          git clone --depth 1 https://github.com/readest/js-mdict.git packages/js-mdict
+          git clone --depth 1 https://github.com/readest/tauri.git packages/tauri
+          git clone --depth 1 https://github.com/readest/tauri-plugins-workspace.git packages/tauri-plugins
+          git clone --depth 1 https://github.com/mozilla/pdf.js.qcms.git packages/qcms
+          git clone --depth 1 https://github.com/readest/tao.git packages/tao
+          git clone --depth 1 https://github.com/readest/tauri-plugin-turso.git apps/readest-app/src-tauri/plugins/tauri-plugin-turso
+          git clone --depth 1 https://github.com/readest/tauri-plugin-webview-upgrade.git apps/readest-app/src-tauri/plugins/tauri-plugin-webview-upgrade
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/readest-app/src-tauri -> target
+          key: android-arm64-release
+
+      - name: Install JavaScript dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare local reader vendors
+        run: pnpm --filter @readest/readest-app setup-vendors
+
+      - name: Initialize Android project
+        run: pnpm --filter @readest/readest-app tauri android init
+
+      - name: Forward Android picker activity results
+        run: |
+          activity_file="$(find apps/readest-app/src-tauri/gen/android/app/src/main/java -name MainActivity.kt -print -quit)"
+          test -n "$activity_file"
+          if ! grep -q 'NativeBridgePlugin.deliverActivityResult' "$activity_file"; then
+            sed -i '/^package /a import android.content.Intent\nimport com.readest.native_bridge.NativeBridgePlugin' "$activity_file"
+            last_line="$(awk 'NF { line = NR } END { print line }' "$activity_file")"
+            sed -i "${last_line}d" "$activity_file"
+            cat >> "$activity_file" <<'KOTLIN'
+              override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+                  super.onActivityResult(requestCode, resultCode, data)
+                  NativeBridgePlugin.deliverActivityResult(requestCode, resultCode, data)
+              }
+          }
+          KOTLIN
+          fi
+          tail -n 12 "$activity_file"
+
+      - name: Select FOSS Android flavor
+        run: |
+          app_gradle="apps/readest-app/src-tauri/gen/android/app/build.gradle.kts"
+          if ! grep -q 'missingDimensionStrategy("store"' "$app_gradle"; then
+            sed -i '/minSdk =/a\        missingDimensionStrategy("store", "foss")' "$app_gradle"
+          fi
+          grep -n 'missingDimensionStrategy("store"' "$app_gradle"
+
+      - name: Configure Android release signing
+        env:
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || secrets.SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.SIGNING_KEY_PASSWORD }}
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEY_BASE64 || secrets.SIGNING_KEY_BASE64 || secrets.SIGNING_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD || secrets.SIGNING_STORE_PASSWORD || secrets.ANDROID_KEY_PASSWORD || secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY_ALIAS" || { echo 'Missing Android signing key alias secret'; exit 1; }
+          test -n "$KEY_PASSWORD" || { echo 'Missing Android signing key password secret'; exit 1; }
+          test -n "$KEYSTORE_BASE64" || { echo 'Missing Android keystore base64 secret'; exit 1; }
+          keystore_file="$RUNNER_TEMP/readinfinity-release.jks"
+          base64 --decode <<< "$KEYSTORE_BASE64" > "$keystore_file"
+          test -s "$keystore_file"
+          {
+            printf 'keyAlias=%s\n' "$KEY_ALIAS"
+            printf 'password=%s\n' "$KEY_PASSWORD"
+            printf 'storePassword=%s\n' "$STORE_PASSWORD"
+            printf 'storeFile=%s\n' "$keystore_file"
+          } > apps/readest-app/src-tauri/gen/android/keystore.properties
+          chmod 600 apps/readest-app/src-tauri/gen/android/keystore.properties
+
+      - name: Build signed arm64-v8a release APK
+        working-directory: apps/readest-app
+        run: pnpm tauri android build --release -t aarch64
+
+      - name: Verify package, branding, signature, and ABI
+        id: apk
+        working-directory: apps/readest-app
+        run: |
+          set -euo pipefail
+          apk_path="$(find src-tauri/gen/android -type f -name 'app-universal-release.apk' -print -quit)"
+          test -n "$apk_path"
+          build_tools="$ANDROID_HOME/build-tools/35.0.0"
+          badging="$($build_tools/aapt dump badging "$apk_path")"
+          grep -F "package: name='com.infinity.readz'" <<< "$badging"
+          grep -F "application-label:'ReadInfinity'" <<< "$badging"
+          "$build_tools/apksigner" verify --verbose "$apk_path"
+          unzip -l "$apk_path" | grep -q 'lib/arm64-v8a/'
+          if unzip -l "$apk_path" | grep -Eq 'lib/(armeabi-v7a|x86|x86_64)/'; then
+            echo 'Unexpected non-arm64 native library found in release APK'
+            exit 1
+          fi
+          version="$(node -p "require('./package.json').version")"
+          release_asset="ReadInfinity_${version}_arm64-v8a.apk"
+          cp "$apk_path" "$release_asset"
+          sha256sum "$release_asset" | tee "$release_asset.sha256"
+          echo "path=$release_asset" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Verified signed arm64-v8a APK: $release_asset"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: readinfinity-android-arm64-v8a-release-${{ github.sha }}
+          path: |
+            apps/readest-app/${{ steps.apk.outputs.path }}
+            apps/readest-app/${{ steps.apk.outputs.path }}.sha256
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Create or update public GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        working-directory: apps/readest-app
+        run: |
+          set -euo pipefail
+          release_title="ReadInfinity ${{ steps.apk.outputs.version }} — arm64-v8a"
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${{ steps.apk.outputs.path }}" "${{ steps.apk.outputs.path }}.sha256" --clobber
+          else
+            gh release create "$RELEASE_TAG" "${{ steps.apk.outputs.path }}" "${{ steps.apk.outputs.path }}.sha256" \
+              --title "$release_title" \
+              --target "$GITHUB_SHA" \
+              --notes "Stable ReadInfinity Android release. Package: com.infinity.readz. Architecture: arm64-v8a only. Books and dictionaries are read directly from selected device folders; local metadata remains on-device."
+          fi
+
+      - name: Attest release APK
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: apps/readest-app/${{ steps.apk.outputs.path }}
+
+      - name: Print release summary
+        run: |
+          echo "Release tag: ${{ inputs.release_tag }}"
+          echo "APK: ReadInfinity_${{ steps.apk.outputs.version }}_arm64-v8a.apk"
+          echo "Package: com.infinity.readz"
+          echo "Brand: ReadInfinity"
+          echo "Architecture: arm64-v8a"
+          echo "Commit: $GITHUB_SHA"
+          echo "Public releases: https://github.com/ZHINFINITY/readinfinity/releases"
+          echo "Artifact: https://github.com/ZHINFINITY/readinfinity/actions/runs/$GITHUB_RUN_ID"
+          echo "Artifact attestation: enabled"
+          echo "APK is signed with the configured release keystore."
+          echo "APK was verified with apksigner and aapt."
+          echo "APK bytes remain outside app storage; only library metadata is local."
+          echo "ReadInfinity stable release workflow completed."
+          echo ""
+          echo "No universal, x86, x86_64, or armeabi-v7a APK is produced by this workflow."
+          echo ""
+          echo "SHA256:"
+          cat "apps/readest-app/${{ steps.apk.outputs.path }}.sha256"
+
+      - name: Upload source-independent release metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: readinfinity-arm64-release-metadata-${{ github.sha }}
+          path: apps/readest-app/${{ steps.apk.outputs.path }}.sha256
+          if-no-files-found: error
+          retention-days: 90

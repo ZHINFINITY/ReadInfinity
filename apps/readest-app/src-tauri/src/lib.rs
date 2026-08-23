@@ -494,7 +494,7 @@ pub fn run() {
                 app.emit("single-instance", SingleInstancePayload { args: argv, cwd })
                     .unwrap();
             })
-            .dbus_id("com.infinity.readi".to_owned())
+            .dbus_id("com.infinity.readz".to_owned())
             .build(),
     );
 

@@ -809,14 +809,14 @@ const CustomDictionaries: React.FC<CustomDictionariesProps> = ({ onBack }) => {
             {importing ? (
               importProgress ? (
                 <>
-                  {importProgress.stage === 'indexing' ? _('Indexing…') : _('Loading…')}
+                  {importProgress.stage === 'indexing' ? _('Indexing…') : _('Scanning…')}
                   {` ${importProgress.percentage}%`}
                 </>
               ) : (
-                _('Loading…')
+                _('Scanning…')
               )
             ) : (
-              _('Choose Dictionary Folder')
+              _('Select Dictionary Folder')
             )}
           </span>
         </button>

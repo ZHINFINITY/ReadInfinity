@@ -9,7 +9,7 @@ import {
   IoLibraryOutline,
   IoOpenOutline,
 } from 'react-icons/io5';
-import { DOWNLOAD_READEST_URL } from '@/services/constants';
+import { DOWNLOAD_READINFINITY_URL } from '@/services/constants';
 import { useTranslation, type TranslationFunc } from '@/hooks/useTranslation';
 import { useAuth } from '@/context/AuthContext';
 import { useEnv } from '@/context/EnvContext';
@@ -144,12 +144,12 @@ const ShareLanding = () => {
             <h1 className='text-base-content text-2xl font-semibold'>{heading}</h1>
             <p className='text-base-content/70 mt-2 text-sm'>{body}</p>
             <a
-              href={DOWNLOAD_READEST_URL}
+              href={DOWNLOAD_READINFINITY_URL}
               target='_blank'
               rel='noopener'
               className='btn btn-ghost btn-block mt-6'
             >
-              {_('Get Readest')}
+              {_('Get ReadInfinity')}
             </a>
           </div>
         </Card>
@@ -162,7 +162,7 @@ const ShareLanding = () => {
     return (
       <main className='bg-base-200 flex min-h-dvh flex-col items-center justify-center p-4 sm:p-8'>
         <Card>
-          <BrandHeader title={_('Loading shared book…')} alt={_('Readest logo')} />
+          <BrandHeader title={_('Loading shared book…')} alt={_('ReadInfinity logo')} />
           <div
             className='mt-6 flex flex-col items-center gap-3 py-4'
             role='status'
@@ -192,7 +192,7 @@ const ShareLanding = () => {
         <div className='flex flex-col items-center gap-2 px-5 pb-2 pt-5 sm:px-7 sm:pb-3 sm:pt-7'>
           <Image
             src='/icon.png'
-            alt={_('Readest logo')}
+            alt={_('ReadInfinity logo')}
             width={40}
             height={40}
             priority
@@ -301,14 +301,14 @@ const ShareLanding = () => {
                     {_('Open in app')}
                   </a>
                   <p className='text-base-content/60 mt-1 text-center text-xs sm:text-left'>
-                    {_("Don't have Readest?")}{' '}
+                    {_("Don't have ReadInfinity?")}{' '}
                     <a
-                      href={DOWNLOAD_READEST_URL}
+                      href={DOWNLOAD_READINFINITY_URL}
                       target='_blank'
                       rel='noopener'
                       className='text-primary font-medium hover:underline'
                     >
-                      {_('Download Readest')}
+                      {_('Download ReadInfinity')}
                     </a>
                   </p>
                 </>

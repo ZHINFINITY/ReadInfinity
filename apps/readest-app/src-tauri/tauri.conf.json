@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "ReadInfinity",
   "mainBinaryName": "readinfinity",
-  "identifier": "com.infinity.readi",
+  "identifier": "com.infinity.readz",
   "version": "../package.json",
   "build": {
     "frontendDist": "../out",

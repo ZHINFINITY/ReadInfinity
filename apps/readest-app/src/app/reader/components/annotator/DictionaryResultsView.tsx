@@ -82,14 +82,18 @@ export function useDictionaryResults({
   const isDarkMode = useThemeStore((s) => s.isDarkMode);
   const themeCode = useThemeStore((s) => s.themeCode);
 
-  const computedProviders = getEnabledProviders({
-    settings,
-    dictionaries,
-    fs: appService ?? undefined,
-  });
-  const providersSignature = computedProviders.map((p) => p.id).join('|');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const providers = useMemo<DictionaryProvider[]>(() => computedProviders, [providersSignature]);
+  // Rebuild provider instances when dictionary metadata, enable flags, order,
+  // or the filesystem service changes. The previous ID-only signature could
+  // preserve a stale provider list after a direct folder load or re-hydration.
+  const providers = useMemo<DictionaryProvider[]>(
+    () =>
+      getEnabledProviders({
+        settings,
+        dictionaries,
+        fs: appService ?? undefined,
+      }),
+    [settings, dictionaries, appService],
+  );
 
   const definitionProviders = useMemo(() => providers.filter((p) => p.kind !== 'web'), [providers]);
   const webSearchProviders = useMemo(() => providers.filter((p) => p.kind === 'web'), [providers]);

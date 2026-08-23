@@ -937,7 +937,7 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
             ? _('Failed to open book(s): {{filenames}}', {
                 filenames: listFormater(false).format([filename]),
               })
-            : _('Failed to import book(s): {{filenames}}', {
+            : _('Could not add book(s): {{filenames}}', {
                 filenames: listFormater(false).format([filename]),
               })) + (errorMessage ? `\n${errorMessage}` : ''),
         timeout: 5000,
@@ -951,7 +951,7 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
       eventDispatcher.dispatch('toast', {
         message: options.directScan
           ? _('Added {{count}} books from device folders', { count: successfulImports.length })
-          : _('Successfully imported {{count}} book(s)', { count: successfulImports.length }),
+          : _('Added {{count}} books', { count: successfulImports.length }),
         timeout: 2000,
         type: 'success',
       });
@@ -1052,77 +1052,88 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
   // ReadInfinity is local-first: Android scans only folders the user selected.
   // The native read_dir command is recursive, while importBooks deduplicates
   // against existing source paths without copying an in-place source book.
-  const scanDeviceStorage = useCallback(async (requestedFolders?: string[]) => {
-    if (
-      !libraryLoaded ||
-      loading ||
-      !appService?.isAndroidApp ||
-      deviceStorageScanInFlightRef.current
-    ) {
-      return;
-    }
-    deviceStorageScanInFlightRef.current = true;
-    try {
-      eventDispatcher.dispatch('toast', {
-        type: 'info',
-        timeout: 3000,
-        message: _('Scanning device storage…'),
-      });
-      const granted = await requestStoragePermission();
-      if (!granted) {
-        eventDispatcher.dispatch('toast', {
-          type: 'info',
-          timeout: 5000,
-          message: _('Storage access is required to discover books automatically.'),
-        });
+  const scanDeviceStorage = useCallback(
+    async (requestedFolders?: string[]) => {
+      if (
+        !libraryLoaded ||
+        loading ||
+        !appService?.isAndroidApp ||
+        deviceStorageScanInFlightRef.current
+      ) {
         return;
       }
-      const booksFolders = requestedFolders ?? settings.autoImportFolders ?? [];
-      if (booksFolders.length === 0) {
+      deviceStorageScanInFlightRef.current = true;
+      try {
         eventDispatcher.dispatch('toast', {
           type: 'info',
-          timeout: 5000,
-          message: _('Choose one or more books folders before scanning.'),
+          timeout: 3000,
+          message: _('Scanning device storage…'),
         });
-        return;
+        const granted = await requestStoragePermission();
+        if (!granted) {
+          eventDispatcher.dispatch('toast', {
+            type: 'info',
+            timeout: 5000,
+            message: _('Storage access is required to discover books automatically.'),
+          });
+          return;
+        }
+        const booksFolders = requestedFolders ?? settings.autoImportFolders ?? [];
+        if (booksFolders.length === 0) {
+          eventDispatcher.dispatch('toast', {
+            type: 'info',
+            timeout: 5000,
+            message: _('Choose one or more books folders before scanning.'),
+          });
+          return;
+        }
+        const ls = typeof window !== 'undefined' ? window.localStorage : null;
+        const selectedGroupIds = (ls?.getItem(LAST_IMPORT_FOLDER_FORMATS_KEY) || '')
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean);
+        const extensions = DEFAULT_FORMAT_GROUPS.filter((group) =>
+          selectedGroupIds.length > 0
+            ? selectedGroupIds.includes(group.id)
+            : group.id === 'epub' || group.id === 'pdf',
+        ).flatMap((group) => group.exts);
+        const storedMinSize = Number.parseInt(
+          ls?.getItem(LAST_IMPORT_FOLDER_MIN_SIZE_KEY) || String(DEFAULT_MIN_SIZE_KB),
+          10,
+        );
+        const minSizeBytes =
+          (Number.isFinite(storedMinSize) && storedMinSize >= 0
+            ? storedMinSize
+            : DEFAULT_MIN_SIZE_KB) * 1024;
+        const foundCount = await autoImportFromWatchedFolders(booksFolders, {
+          extensions,
+          minSizeBytes,
+        });
+        eventDispatcher.dispatch('toast', {
+          type: 'info',
+          timeout: 4000,
+          message:
+            foundCount > 0
+              ? _('Found {{count}} new books in the selected folders.', { count: foundCount })
+              : _('No new books found in the selected folders.'),
+        });
+      } catch (error) {
+        // Permission denial or an unavailable storage provider should not block
+        // the library. The user can press Scan Books again after fixing access.
+        console.warn('Automatic device-storage scan unavailable:', error);
+      } finally {
+        deviceStorageScanInFlightRef.current = false;
       }
-      const ls = typeof window !== 'undefined' ? window.localStorage : null;
-      const selectedGroupIds = (ls?.getItem(LAST_IMPORT_FOLDER_FORMATS_KEY) || '')
-        .split(',')
-        .map((id) => id.trim())
-        .filter(Boolean);
-      const extensions = DEFAULT_FORMAT_GROUPS.filter((group) =>
-        selectedGroupIds.length > 0
-          ? selectedGroupIds.includes(group.id)
-          : group.id === 'epub' || group.id === 'pdf',
-      ).flatMap((group) => group.exts);
-      const storedMinSize = Number.parseInt(
-        ls?.getItem(LAST_IMPORT_FOLDER_MIN_SIZE_KEY) || String(DEFAULT_MIN_SIZE_KB),
-        10,
-      );
-      const minSizeBytes =
-        (Number.isFinite(storedMinSize) && storedMinSize >= 0 ? storedMinSize : DEFAULT_MIN_SIZE_KB) *
-        1024;
-      const foundCount = await autoImportFromWatchedFolders(booksFolders, {
-        extensions,
-        minSizeBytes,
-      });
-      eventDispatcher.dispatch('toast', {
-        type: 'info',
-        timeout: 4000,
-        message:
-          foundCount > 0
-            ? _('Found {{count}} new books in the selected folders.', { count: foundCount })
-            : _('No new books found in the selected folders.'),
-      });
-    } catch (error) {
-      // Permission denial or an unavailable storage provider should not block
-      // the library. The user can press Scan Books again after fixing access.
-      console.warn('Automatic device-storage scan unavailable:', error);
-    } finally {
-      deviceStorageScanInFlightRef.current = false;
-    }
-  }, [_, appService, autoImportFromWatchedFolders, libraryLoaded, loading, settings.autoImportFolders]);
+    },
+    [
+      _,
+      appService,
+      autoImportFromWatchedFolders,
+      libraryLoaded,
+      loading,
+      settings.autoImportFolders,
+    ],
+  );
 
   const scanEntireDeviceStorage = useCallback(
     () => void scanDeviceStorage(['/storage/emulated/0']),

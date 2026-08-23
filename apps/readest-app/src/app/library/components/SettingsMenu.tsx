@@ -86,7 +86,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
   };
   const { setLibrary } = useLibraryStore();
 
-  const showAboutReadest = () => {
+  const showAboutReadInfinity = () => {
     setAboutDialogVisible(true);
     setIsDropdownOpen?.(false);
   };
@@ -242,7 +242,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
       )}
       {isTauriAppPlatform() && !appService?.isAndroidApp && (
         <MenuItem
-          label={_('Auto Import on File Open')}
+          label={_('Add Opened Books to Library')}
           toggled={isAutoImportBooksOnOpen}
           onClick={toggleAutoImportBooksOnOpen}
         />
@@ -308,8 +308,8 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
               label={_('Set PIN…')}
               tooltip={
                 appService?.isMobileApp
-                  ? _('Require a PIN (and biometrics, if available) to open Readest')
-                  : _('Require a 4-digit PIN to open Readest')
+                  ? _('Require a PIN (and biometrics, if available) to open ReadInfinity')
+                  : _('Require a 4-digit PIN to open ReadInfinity')
               }
               onClick={() => openAppLockDialog('set')}
             />
@@ -339,7 +339,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
         </ul>
       </MenuItem>
       <hr aria-hidden='true' className='border-base-200 my-1' />
-      <MenuItem label={_('About Readest')} onClick={showAboutReadest} />
+      <MenuItem label={_('About ReadInfinity')} onClick={showAboutReadInfinity} />
     </Menu>
   );
 };

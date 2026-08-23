@@ -182,6 +182,52 @@ describe('customDictionaryStore — web search CRUD', () => {
     expect(after.providerOrder).toEqual(['builtin:wikipedia', 'imp-existing']);
   });
 
+  it('restores direct dictionary folder scopes before checking availability', async () => {
+    const externalRoot = '/storage/emulated/0/Books/Dictionaries';
+    const events: string[] = [];
+    const dictionary: ImportedDictionary = {
+      id: 'direct-mdict-1',
+      contentId: 'direct-content-1',
+      kind: 'mdict',
+      name: 'Direct Dictionary',
+      bundleDir: 'direct-mdict-1',
+      externalRoot,
+      files: { mdx: 'nested/direct.mdx' },
+      addedAt: 1,
+    };
+
+    useSettingsStore.setState({
+      settings: {
+        customDictionaries: [dictionary],
+        dictionarySettings: {
+          providerOrder: [dictionary.id],
+          providerEnabled: { [dictionary.id]: true },
+          webSearches: [],
+        },
+      } as never,
+    });
+
+    const appService = {
+      allowPathsInScopes: vi.fn(async () => {
+        events.push('allow');
+      }),
+      exists: vi.fn(async () => {
+        events.push('exists');
+        return true;
+      }),
+    };
+    const envConfig = {
+      getAppService: vi.fn().mockResolvedValue(appService),
+    } as unknown as EnvConfigType;
+
+    await useCustomDictionaryStore.getState().loadCustomDictionaries(envConfig);
+
+    expect(appService.allowPathsInScopes).toHaveBeenCalledWith([externalRoot], true);
+    expect(appService.exists).toHaveBeenCalledWith(externalRoot, 'None');
+    expect(events.slice(0, 2)).toEqual(['allow', 'exists']);
+    expect(useCustomDictionaryStore.getState().dictionaries[0]?.unavailable).toBeUndefined();
+  });
+
   it('updateDictionary patches the display name (trimmed) and ignores empty / unchanged input', () => {
     const { addDictionary, updateDictionary } = useCustomDictionaryStore.getState();
     addDictionary({

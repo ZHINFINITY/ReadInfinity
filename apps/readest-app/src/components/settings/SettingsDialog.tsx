@@ -31,17 +31,9 @@ import ControlPanel from './ControlPanel';
 import LangPanel from './LangPanel';
 import MiscPanel from './MiscPanel';
 import TTSPanel from './TTSPanel';
+import { normalizeSettingsPanel, type SettingsPanelType } from './settingsPanel';
 
-export type SettingsPanelType =
-  | 'Font'
-  | 'Layout'
-  | 'Theme'
-  | 'Control'
-  | 'TTS'
-  | 'Language'
-  | 'AI'
-  | 'Integrations'
-  | 'Custom';
+export type { SettingsPanelType } from './settingsPanel';
 export type SettingsPanelPanelProp = {
   bookKey: string;
   onRegisterReset: (resetFn: () => void) => void;
@@ -175,7 +167,8 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   };
 
   const handleResetCurrentPanel = () => {
-    const resetFn = resetFunctions[activePanel];
+    const resetFn =
+      resetFunctions[activePanel === 'AI' || activePanel === 'Integrations' ? 'Font' : activePanel];
     if (resetFn) {
       resetFn();
     }
@@ -205,7 +198,12 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
       };
       const panelKey = parts[1]?.toLowerCase();
       const targetPanel = panelMap[panelKey || ''];
-      if (targetPanel && targetPanel !== activePanel) {
+      if (
+        targetPanel &&
+        targetPanel !== 'AI' &&
+        targetPanel !== 'Integrations' &&
+        targetPanel !== activePanel
+      ) {
         // eslint-disable-next-line react-hooks/set-state-in-effect -- panel switch based on external navigation is intended
         setActivePanel(targetPanel);
       }
@@ -293,7 +291,18 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
     container.scrollBy({ left: isRtl ? -amount : amount, behavior: 'smooth' });
   };
 
-  const currentPanel = tabConfig.find((tab) => tab.tab === activePanel);
+  // AI and Integrations are retained in the shared settings ID vocabulary for
+  // compatibility, but those panels are intentionally not rendered in the
+  // offline app. Never let a stale deep link leave the dialog with no content.
+  const renderedPanel = normalizeSettingsPanel(activePanel);
+  useEffect(() => {
+    if (renderedPanel === activePanel) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- normalize a stale external panel link
+    setActivePanel(renderedPanel);
+    localStorage.setItem('lastConfigPanel', renderedPanel);
+  }, [activePanel, renderedPanel]);
+
+  const currentPanel = tabConfig.find((tab) => tab.tab === renderedPanel);
 
   const windowControls = (
     <div className='flex h-full items-center justify-end gap-x-2'>
@@ -313,7 +322,7 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
       >
         <DialogMenu
           bookKey={bookKey}
-          activePanel={activePanel}
+          activePanel={renderedPanel}
           onReset={handleResetCurrentPanel}
           resetLabel={
             currentPanel ? _('Reset {{settings}}', { settings: currentPanel.label }) : undefined
@@ -342,7 +351,7 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
       className='modal-open !z-[110]'
       bgClassName={bookKey ? 'sm:!bg-black/20' : 'sm:!bg-black/50'}
       boxClassName={clsx(
-        'sm:min-w-[520px] overflow-hidden not-eink:bg-base-200',
+        'settings-dialog-box sm:min-w-[520px] overflow-hidden not-eink:bg-base-200',
         appService?.isMobile && 'sm:max-w-[90%] sm:w-3/4',
       )}
       snapHeight={appService?.isMobile ? 0.7 : undefined}
@@ -388,7 +397,7 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
                     title={label}
                     className={clsx(
                       'btn btn-ghost text-base-content btn-sm gap-1 px-2 max-[350px]:px-1',
-                      activePanel === tab ? 'btn-active' : '',
+                      renderedPanel === tab ? 'btn-active' : '',
                     )}
                     onClick={() => handleSetActivePanel(tab)}
                   >
@@ -426,40 +435,40 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
         role='group'
         aria-label={`${_(currentPanel?.label || '')} - ${_('Settings')}`}
       >
-        {activePanel === 'Font' && (
+        {renderedPanel === 'Font' && (
           <FontPanel
             bookKey={bookKey}
             onRegisterReset={(fn) => registerResetFunction('Font', fn)}
           />
         )}
-        {activePanel === 'Layout' && (
+        {renderedPanel === 'Layout' && (
           <LayoutPanel
             bookKey={bookKey}
             onRegisterReset={(fn) => registerResetFunction('Layout', fn)}
           />
         )}
-        {activePanel === 'Theme' && (
+        {renderedPanel === 'Theme' && (
           <ThemePanel
             bookKey={bookKey}
             onRegisterReset={(fn) => registerResetFunction('Theme', fn)}
           />
         )}
-        {activePanel === 'Control' && (
+        {renderedPanel === 'Control' && (
           <ControlPanel
             bookKey={bookKey}
             onRegisterReset={(fn) => registerResetFunction('Control', fn)}
           />
         )}
-        {activePanel === 'TTS' && (
+        {renderedPanel === 'TTS' && (
           <TTSPanel bookKey={bookKey} onRegisterReset={(fn) => registerResetFunction('TTS', fn)} />
         )}
-        {activePanel === 'Language' && (
+        {renderedPanel === 'Language' && (
           <LangPanel
             bookKey={bookKey}
             onRegisterReset={(fn) => registerResetFunction('Language', fn)}
           />
         )}
-        {activePanel === 'Custom' && (
+        {renderedPanel === 'Custom' && (
           <MiscPanel
             bookKey={bookKey}
             onRegisterReset={(fn) => registerResetFunction('Custom', fn)}

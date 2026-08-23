@@ -520,6 +520,24 @@ export const useCustomDictionaryStore = create<DictionaryStoreState>((set, get) 
       const persisted = settings?.customDictionaries ?? [];
       const persistedSettings = settings?.dictionarySettings ?? DEFAULT_DICTIONARY_SETTINGS;
       const appService = await envConfig.getAppService();
+      // Direct dictionaries live in user-selected external folders. Android
+      // scopes are restored per process, so grant those folders before the
+      // availability checks below; otherwise every restart marks valid bundles
+      // as unavailable and the reader lookup registry hides them.
+      const externalRoots = [
+        ...new Set(
+          persisted
+            .filter((dict) => !dict.deletedAt && Boolean(dict.externalRoot))
+            .map((dict) => dict.externalRoot as string),
+        ),
+      ];
+      if (externalRoots.length > 0) {
+        try {
+          await appService.allowPathsInScopes?.(externalRoots, true);
+        } catch (error) {
+          console.warn('Failed to restore direct dictionary folder scopes', error);
+        }
+      }
       const pluginDictionaries = persisted.filter(
         (dict) => !dict.deletedAt && dict.kind === 'plugin',
       );
