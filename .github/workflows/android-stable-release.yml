@@ -91,6 +91,18 @@ jobs:
       - name: Initialize Android project
         run: pnpm --filter @readest/readest-app tauri android init
 
+      - name: Pin Android package and launcher label
+        run: |
+          app_gradle="apps/readest-app/src-tauri/gen/android/app/build.gradle.kts"
+          manifest="apps/readest-app/src-tauri/gen/android/app/src/main/AndroidManifest.xml"
+          grep -q 'applicationId = "com.infinity.readz"' "$app_gradle" || sed -i 's/applicationId = ".*"/applicationId = "com.infinity.readz"/' "$app_gradle"
+          grep -q 'namespace = "com.infinity.readz"' "$app_gradle" || sed -i 's/namespace = ".*"/namespace = "com.infinity.readz"/' "$app_gradle"
+          sed -i 's/android:label="@string\/main_activity_title"/android:label="Read∞"/g' "$manifest"
+          sed -i 's/android:label="@string\/app_name"/android:label="Read∞"/g' "$manifest"
+          grep -F 'applicationId = "com.infinity.readz"' "$app_gradle"
+          grep -F 'namespace = "com.infinity.readz"' "$app_gradle"
+          grep -F 'android:label="Read∞"' "$manifest"
+
       - name: Forward Android picker activity results
         run: |
           activity_file="$(find apps/readest-app/src-tauri/gen/android/app/src/main/java -name MainActivity.kt -print -quit)"
