@@ -78,6 +78,14 @@ jobs:
       - name: Initialize Android project
         run: pnpm --filter @readest/readest-app tauri android init
 
+      - name: Select FOSS Android flavor
+        run: |
+          app_gradle="apps/readest-app/src-tauri/gen/android/app/build.gradle.kts"
+          if ! grep -q 'missingDimensionStrategy("store"' "$app_gradle"; then
+            sed -i '/minSdk =/a\        missingDimensionStrategy("store", "foss")' "$app_gradle"
+          fi
+          grep -n 'missingDimensionStrategy("store"' "$app_gradle"
+
       - name: Build Android debug APK
         run: pnpm --filter @readest/readest-app tauri android build --debug -t aarch64 -- --features devtools
 
