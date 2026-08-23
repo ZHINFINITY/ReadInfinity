@@ -1443,9 +1443,10 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
             result.put("uri", uri?.toString())
             result.put("path", null)
         } else {
-            path = extractPathFromUri(uri)
+            val selectedUri = uri ?: return
+            path = extractPathFromUri(selectedUri)
             result.put("cancelled", false)
-            result.put("uri", uri.toString())
+            result.put("uri", selectedUri.toString())
             result.put("path", path)
             // Persist only the URI grant flags actually returned by
             // DocumentsUI. Requesting WRITE when the provider granted READ
@@ -1454,7 +1455,7 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
                 (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
             if (grantedFlags != 0) {
                 try {
-                    activity.contentResolver.takePersistableUriPermission(uri, grantedFlags)
+                    activity.contentResolver.takePersistableUriPermission(selectedUri, grantedFlags)
                 } catch (e: SecurityException) {
                     // Absolute-path access remains valid under All Files
                     // Access; surface the issue without discarding the path.
