@@ -1,4 +1,4 @@
-import { addPluginListener, invoke, Channel, type PluginListener } from '@tauri-apps/api/core';
+import { addPluginListener, invoke, Channel } from '@tauri-apps/api/core';
 
 export interface CopyURIRequest {
   uri: string;
