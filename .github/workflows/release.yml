@@ -1,4 +1,4 @@
-name: ReadInfinity Legacy Release (manual only)
+name: Read∞ Legacy Release (manual only)
 on:
   workflow_dispatch:
 

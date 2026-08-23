@@ -308,8 +308,8 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
               label={_('Set PIN…')}
               tooltip={
                 appService?.isMobileApp
-                  ? _('Require a PIN (and biometrics, if available) to open ReadInfinity')
-                  : _('Require a 4-digit PIN to open ReadInfinity')
+                  ? _('Require a PIN (and biometrics, if available) to open Read∞')
+                  : _('Require a 4-digit PIN to open Read∞')
               }
               onClick={() => openAppLockDialog('set')}
             />
@@ -339,7 +339,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
         </ul>
       </MenuItem>
       <hr aria-hidden='true' className='border-base-200 my-1' />
-      <MenuItem label={_('About ReadInfinity')} onClick={showAboutReadInfinity} />
+      <MenuItem label={_('About Read∞')} onClick={showAboutReadInfinity} />
     </Menu>
   );
 };

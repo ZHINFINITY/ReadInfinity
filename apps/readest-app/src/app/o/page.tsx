@@ -130,7 +130,7 @@ const OpenAnnotationLanding = () => {
               )}
             </p>
             <a href='https://readest.com' className='btn btn-ghost btn-block mt-6' rel='noopener'>
-              {_('Go to ReadInfinity')}
+              {_('Go to Read∞')}
             </a>
           </div>
         </Card>
@@ -146,13 +146,13 @@ const OpenAnnotationLanding = () => {
     <main className='bg-base-200 flex min-h-dvh flex-col items-center justify-center p-4 sm:p-8'>
       <Card>
         <BrandHeader
-          title={_('Open in ReadInfinity')}
+          title={_('Open in Read∞')}
           subtitle={
             showManualOpen
-              ? _("If ReadInfinity didn't open automatically, choose an option below:")
+              ? _("If Read∞ didn't open automatically, choose an option below:")
               : _('Continue reading where you left off.')
           }
-          alt={_('ReadInfinity logo')}
+          alt={_('Read∞ logo')}
         />
 
         {/* Loading state — visible until the desktop timeout fires (or always
@@ -164,7 +164,7 @@ const OpenAnnotationLanding = () => {
             aria-live='polite'
           >
             <span className='loading loading-dots loading-md text-primary' aria-hidden='true' />
-            <span className='text-base-content/70 text-sm'>{_('Opening ReadInfinity...')}</span>
+            <span className='text-base-content/70 text-sm'>{_('Opening Read∞...')}</span>
           </div>
         )}
 
@@ -177,14 +177,14 @@ const OpenAnnotationLanding = () => {
         >
           <a href={appUrl} className='btn btn-primary btn-block' rel='noopener'>
             <IoBookOutline className='h-5 w-5' aria-hidden='true' />
-            {_('Open in ReadInfinity app')}
+            {_('Open in Read∞ app')}
           </a>
           <a href={webReaderHref} className='btn btn-ghost btn-block' rel='noopener'>
             <IoOpenOutline className='h-5 w-5' aria-hidden='true' />
             {_('Continue in browser')}
           </a>
           <p className='text-base-content/60 mt-3 text-center text-xs'>
-            {_("Don't have ReadInfinity?")}{' '}
+            {_("Don't have Read∞?")}{' '}
             <a
               href={DOWNLOAD_READINFINITY_URL}
               target='_blank'

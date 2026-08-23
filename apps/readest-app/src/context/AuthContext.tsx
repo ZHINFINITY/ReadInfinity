@@ -12,7 +12,7 @@ interface AuthContextType {
 }
 
 /**
- * ReadInfinity is an offline distribution. The auth-shaped context remains
+ * Read∞ is an offline distribution. The auth-shaped context remains
  * available for shared components that still import `useAuth`, but it never
  * contacts Supabase, persists credentials, or reports a signed-in user.
  */
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = useCallback((_token: string, _user: User) => {
-    console.warn('Login is disabled in the offline ReadInfinity build.');
+    console.warn('Login is disabled in the offline Read∞ build.');
   }, []);
 
   const logout = useCallback(() => {

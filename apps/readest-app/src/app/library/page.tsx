@@ -325,7 +325,7 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
   useOpenWithBooks();
 
   // Offline refresh reloads the local library index only. It never contacts
-  // ReadInfinity or any sync provider.
+  // Read∞ or any sync provider.
   const pullLibrary = useCallback(async () => {
     if (!appService) return;
     setLibrary(await appService.loadLibraryBooks());
@@ -530,7 +530,7 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
       for (const file of openWithFiles) {
         console.log('Open with book:', file);
         try {
-          // Open-with files are local references in ReadInfinity. They are
+          // Open-with files are local references in Read∞. They are
           // retained in the library by path and are never sent to a backend.
           const temp = false;
           const book = await ingestFile(
@@ -1049,7 +1049,7 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
     },
   });
 
-  // ReadInfinity is local-first: Android scans only folders the user selected.
+  // Read∞ is local-first: Android scans only folders the user selected.
   // The native read_dir command is recursive, while importBooks deduplicates
   // against existing source paths without copying an in-place source book.
   const scanDeviceStorage = useCallback(

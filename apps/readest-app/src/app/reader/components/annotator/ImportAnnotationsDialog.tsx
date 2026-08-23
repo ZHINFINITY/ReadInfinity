@@ -38,8 +38,8 @@ const ImportAnnotationsDialog: React.FC<ImportAnnotationsDialogProps> = ({
       >
         <NavigationRow
           icon={MdDataObject}
-          title={_('ReadInfinity')}
-          status={_('ReadInfinity annotations file (.json)')}
+          title={_('Read∞')}
+          status={_('Read∞ annotations file (.json)')}
           onClick={onImportReadest}
         />
         <NavigationRow

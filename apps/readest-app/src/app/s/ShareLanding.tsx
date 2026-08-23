@@ -149,7 +149,7 @@ const ShareLanding = () => {
               rel='noopener'
               className='btn btn-ghost btn-block mt-6'
             >
-              {_('Get ReadInfinity')}
+              {_('Get Read∞')}
             </a>
           </div>
         </Card>
@@ -162,7 +162,7 @@ const ShareLanding = () => {
     return (
       <main className='bg-base-200 flex min-h-dvh flex-col items-center justify-center p-4 sm:p-8'>
         <Card>
-          <BrandHeader title={_('Loading shared book…')} alt={_('ReadInfinity logo')} />
+          <BrandHeader title={_('Loading shared book…')} alt={_('Read∞ logo')} />
           <div
             className='mt-6 flex flex-col items-center gap-3 py-4'
             role='status'
@@ -192,7 +192,7 @@ const ShareLanding = () => {
         <div className='flex flex-col items-center gap-2 px-5 pb-2 pt-5 sm:px-7 sm:pb-3 sm:pt-7'>
           <Image
             src='/icon.png'
-            alt={_('ReadInfinity logo')}
+            alt={_('Read∞ logo')}
             width={40}
             height={40}
             priority
@@ -301,14 +301,14 @@ const ShareLanding = () => {
                     {_('Open in app')}
                   </a>
                   <p className='text-base-content/60 mt-1 text-center text-xs sm:text-left'>
-                    {_("Don't have ReadInfinity?")}{' '}
+                    {_("Don't have Read∞?")}{' '}
                     <a
                       href={DOWNLOAD_READINFINITY_URL}
                       target='_blank'
                       rel='noopener'
                       className='text-primary font-medium hover:underline'
                     >
-                      {_('Download ReadInfinity')}
+                      {_('Download Read∞')}
                     </a>
                   </p>
                 </>

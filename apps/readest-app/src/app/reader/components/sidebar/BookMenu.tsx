@@ -223,7 +223,7 @@ const BookMenu: React.FC<BookMenuProps> = ({ menuClassName, setIsDropdownOpen })
       />
       <MenuItem label={_('Reload Page')} shortcut='Shift+R' onClick={handleReloadPage} />
       <hr aria-hidden='true' className='border-base-200 my-1' />
-      <MenuItem label={_('About ReadInfinity')} onClick={showAboutReadInfinity} />
+      <MenuItem label={_('About Read∞')} onClick={showAboutReadInfinity} />
     </Menu>
   );
 };

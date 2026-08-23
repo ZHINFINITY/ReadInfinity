@@ -493,9 +493,7 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
             <span className='select-none'>
               <span className='block'>
                 {_('Read directly from device storage')}
-                {directOnly && (
-                  <span className='text-primary ms-2 text-xs'>{_('Always on')}</span>
-                )}
+                {directOnly && <span className='text-primary ms-2 text-xs'>{_('Always on')}</span>}
               </span>
 
               <span className='text-base-content/60 block text-xs'>
@@ -504,7 +502,7 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
                       'This folder is watched for local books. Disable direct reading only if you want to stop using this folder.',
                     )
                   : _(
-                      'Keep books in their original folders and read them directly. Only local metadata, covers, and reading notes are stored by ReadInfinity.',
+                      'Keep books in their original folders and read them directly. Only local metadata, covers, and reading notes are stored by Read∞.',
                     )}
               </span>
             </span>
@@ -523,7 +521,9 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
               <span className='select-none'>
                 <span className='block'>{_('Watch this folder for new books')}</span>
                 <span className='text-base-content/60 block text-xs'>
-                  {_('Scan this folder automatically when the library opens or returns to the foreground.')}
+                  {_(
+                    'Scan this folder automatically when the library opens or returns to the foreground.',
+                  )}
                 </span>
               </span>
             </label>
@@ -571,7 +571,9 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
             <span className='select-none'>
               <span className='block'>{_('Add all books to library')}</span>
               <span className='text-base-content/60 block text-xs'>
-                {_('Recursively find every supported book in this folder and keep it at its original path.')}
+                {_(
+                  'Recursively find every supported book in this folder and keep it at its original path.',
+                )}
               </span>
             </span>
           </label>

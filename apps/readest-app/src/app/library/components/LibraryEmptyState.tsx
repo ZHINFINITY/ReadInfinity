@@ -23,8 +23,12 @@ const LibraryEmptyState: React.FC<LibraryEmptyStateProps> = ({ onImport, onChoos
         </h1>
         <p className='text-base-content/70 mb-12 text-pretty text-base leading-relaxed'>
           {isMobile
-            ? _('Choose one or more books folders, then scan them recursively when you are ready. Books stay in their original folders.')
-            : _('Choose one or more books folders and scan them when you are ready. Subfolders are included and books stay in place.')}
+            ? _(
+                'Choose one or more books folders, then scan them recursively when you are ready. Books stay in their original folders.',
+              )
+            : _(
+                'Choose one or more books folders and scan them when you are ready. Subfolders are included and books stay in place.',
+              )}
         </p>
         <div className='flex w-full max-w-xs flex-col gap-3'>
           {onChooseFolder && (

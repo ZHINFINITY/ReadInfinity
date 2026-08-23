@@ -1,10 +1,7 @@
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
 import { MdCheckCircle, MdCheckCircleOutline } from 'react-icons/md';
-import {
-  LiaHeadphonesSolid,
-  LiaInfoCircleSolid,
-} from 'react-icons/lia';
+import { LiaHeadphonesSolid, LiaInfoCircleSolid } from 'react-icons/lia';
 
 import { Book } from '@/types/book';
 import { useEnv } from '@/context/EnvContext';

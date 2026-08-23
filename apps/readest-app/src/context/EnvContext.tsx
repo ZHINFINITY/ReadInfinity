@@ -17,7 +17,7 @@ export const EnvProvider = ({ children }: { children: ReactNode }) => {
   const [appService, setAppService] = useState<AppService | null>(null);
 
   React.useEffect(() => {
-    // ReadInfinity is intentionally local-only. Do not bootstrap replica
+    // Read∞ is intentionally local-only. Do not bootstrap replica
     // adapters, persistence publishers, transfer integration, or auto-sync.
     envConfig
       .getAppService()

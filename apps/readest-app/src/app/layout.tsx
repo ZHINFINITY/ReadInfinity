@@ -8,9 +8,9 @@ import Providers from '@/components/Providers';
 import '../styles/globals.css';
 
 const url = 'https://github.com/ZHINFINITY/readinfinity';
-const title = 'ReadInfinity — Offline reading, directly from your device';
+const title = 'Read∞ — Offline reading, directly from your device';
 const description =
-  'ReadInfinity is an offline ebook reader for reading books directly from device storage, ' +
+  'Read∞ is an offline ebook reader for reading books directly from device storage, ' +
   'with local library metadata, notes, highlighting, and dictionary support.';
 const previewImage = '/icon.png';
 
@@ -18,15 +18,15 @@ export const metadata: Metadata = {
   metadataBase: new URL(url),
   title: {
     default: title,
-    template: '%s | ReadInfinity',
+    template: '%s | Read∞',
   },
   description,
   generator: 'Next.js',
   manifest: '/manifest.json',
-  keywords: ['epub', 'pdf', 'ebook', 'reader', 'offline', 'ReadInfinity'],
+  keywords: ['epub', 'pdf', 'ebook', 'reader', 'offline', 'Read∞'],
   authors: [
     {
-      name: 'ReadInfinity',
+      name: 'Read∞',
       url: 'https://github.com/ZHINFINITY/readinfinity',
     },
   ],
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: 'ReadInfinity',
+    title: 'Read∞',
     statusBarStyle: 'default',
   },
   openGraph: {

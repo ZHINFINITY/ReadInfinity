@@ -66,15 +66,13 @@ const WatchedFoldersPane: React.FC<WatchedFoldersPaneProps> = ({
           <span className='text-base font-semibold tracking-tight'>{_('Books Folders')}</span>
         </div>
         <span className='text-base-content/65 text-[0.85em] leading-relaxed'>
-          {_('These folders are scanned only when you choose Scan Books. Subfolders are included, and books stay at their original paths.')}
+          {_(
+            'These folders are scanned only when you choose Scan Books. Subfolders are included, and books stay at their original paths.',
+          )}
         </span>
       </div>
 
-      <button
-        type='button'
-        className='btn btn-primary btn-sm self-start'
-        onClick={onAddFolder}
-      >
+      <button type='button' className='btn btn-primary btn-sm self-start' onClick={onAddFolder}>
         {_('Add Another Folder')}
       </button>
 
