@@ -672,8 +672,8 @@ async function createExternalDictionary(
     let lang: string | undefined;
     try {
       const ifo = parseIfo(await (await readSource(fs, bundle.ifo.source)).text());
-      name = ifo.bookname || name;
-      lang = ifo.lang || ifo.idxoffsetlang || undefined;
+      name = ifo['bookname'] || name;
+      lang = ifo['lang'] || ifo['idxoffsetlang'] || undefined;
     } catch {
       // Keep the filename stem when the small .ifo header is unreadable.
     }
