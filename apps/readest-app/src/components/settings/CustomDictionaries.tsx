@@ -800,11 +800,11 @@ const CustomDictionaries: React.FC<CustomDictionariesProps> = ({ onBack }) => {
             {importing ? (
               importProgress ? (
                 <>
-                  {importProgress.stage === 'indexing' ? _('Indexing…') : _('Importing…')}
+                  {importProgress.stage === 'indexing' ? _('Indexing…') : _('Loading…')}
                   {` ${importProgress.percentage}%`}
                 </>
               ) : (
-                _('Importing…')
+                _('Loading…')
               )
             ) : (
               _('Choose Dictionary Folder')

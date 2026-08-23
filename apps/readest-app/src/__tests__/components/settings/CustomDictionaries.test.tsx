@@ -22,8 +22,7 @@ import { eventDispatcher } from '@/utils/event';
 // the row visibility and the lock gate the component now relies on.
 const platform = vi.hoisted(() => ({ supported: false, available: false }));
 const mocks = vi.hoisted(() => ({
-  importDictionaries: vi.fn(),
-  selectFiles: vi.fn(),
+  loadDictionariesFromFolder: vi.fn(),
 }));
 vi.mock('@/services/dictionaries/systemDictionary', () => ({
   isSystemDictionarySupported: () => platform.supported,
@@ -37,17 +36,22 @@ vi.mock('@/hooks/useTranslation', () => ({
 
 vi.mock('@/context/EnvContext', () => ({
   useEnv: () => ({
-    appService: { importDictionaries: mocks.importDictionaries },
+    appService: {
+      isAndroidApp: true,
+      isIOSApp: false,
+      allowPathsInScopes: vi.fn(),
+      loadDictionariesFromFolder: mocks.loadDictionariesFromFolder,
+    },
     envConfig: {},
   }),
 }));
 
-vi.mock('@/hooks/useFileSelector', () => ({
-  useFileSelector: () => ({ selectFiles: mocks.selectFiles }),
+vi.mock('@/utils/bridge', () => ({
+  selectDirectory: vi.fn(async () => ({ path: '/storage/emulated/0/Dictionaries' })),
 }));
 
-vi.mock('@/services/sync/replicaBinaryUpload', () => ({
-  queueDictionaryBinaryUpload: vi.fn(),
+vi.mock('@/utils/permission', () => ({
+  requestStoragePermission: vi.fn(async () => true),
 }));
 
 const LOCKED_TITLE = 'Disable System Dictionary first to change this.';
@@ -84,8 +88,7 @@ const getToggles = (container: HTMLElement) =>
 beforeEach(() => {
   platform.supported = false;
   platform.available = false;
-  mocks.importDictionaries.mockReset();
-  mocks.selectFiles.mockReset();
+  mocks.loadDictionariesFromFolder.mockReset();
 });
 
 afterEach(() => {
@@ -129,66 +132,45 @@ describe('CustomDictionaries — system-dictionary lock', () => {
   });
 });
 
-describe('CustomDictionaries — import progress', () => {
-  it('shows the Yomitan indexing percentage while a ZIP import is running', async () => {
+describe('CustomDictionaries — direct folder loading', () => {
+  it('keeps the folder action busy until direct discovery completes', async () => {
     seedSettings({ providerOrder: [], providerEnabled: {}, webSearches: [] });
-    mocks.selectFiles.mockResolvedValue({
-      files: [{ file: new File(['dictionary'], 'jitendex.zip') }],
-    });
-
-    let finishImport: ((result: unknown) => void) | undefined;
-    mocks.importDictionaries.mockImplementation(
-      (
-        _files: unknown,
-        _existing: unknown,
-        onProgress?: (progress: { stage: string; completed: number; total?: number }) => void,
-      ) =>
+    let finishLoad: ((result: unknown) => void) | undefined;
+    mocks.loadDictionariesFromFolder.mockImplementation(
+      () =>
         new Promise((resolve) => {
-          finishImport = resolve;
-          onProgress?.({ stage: 'indexing', completed: 1, total: 4 });
+          finishLoad = resolve;
         }),
     );
 
     render(<CustomDictionaries onBack={() => {}} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Import Dictionary' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose Dictionary Folder' }));
 
-    expect(
-      (await screen.findByRole('button', { name: 'Indexing… 25%' })) as HTMLButtonElement,
-    ).toMatchObject({ disabled: true });
-
+    expect((await screen.findByRole('button', { name: 'Loading…' })) as HTMLButtonElement).toMatchObject({
+      disabled: true,
+    });
     await act(async () => {
-      finishImport?.({ imported: [], replacements: [], orphanFiles: [] });
+      finishLoad?.({ imported: [], replacements: [], orphanFiles: [] });
     });
     expect(
-      (await screen.findByRole('button', { name: 'Import Dictionary' })) as HTMLButtonElement,
+      (await screen.findByRole('button', { name: 'Choose Dictionary Folder' })) as HTMLButtonElement,
     ).toMatchObject({ disabled: false });
   });
 
-  it('reports a failed plugin source while retaining successful imports', async () => {
+  it('reports a direct-folder discovery failure', async () => {
     seedSettings({ providerOrder: [], providerEnabled: {}, webSearches: [] });
-    mocks.selectFiles.mockResolvedValue({
-      files: [
-        { file: new File(['valid'], 'valid.zip') },
-        { file: new File(['broken'], 'broken.zip') },
-      ],
-    });
-    mocks.importDictionaries.mockResolvedValue({
-      imported: [],
-      replacements: [],
-      orphanFiles: [],
-      importErrors: [{ name: 'broken.zip', message: 'Invalid Yomitan bank' }],
-    });
+    mocks.loadDictionariesFromFolder.mockRejectedValue(new Error('folder is not readable'));
     const dispatch = vi.spyOn(eventDispatcher, 'dispatch');
 
     render(<CustomDictionaries onBack={() => {}} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Import Dictionary' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose Dictionary Folder' }));
 
     await waitFor(() =>
       expect(dispatch).toHaveBeenCalledWith(
         'toast',
         expect.objectContaining({
           type: 'error',
-          message: 'Failed to import dictionary: broken.zip: Invalid Yomitan bank',
+          message: 'Failed to load dictionary folder: folder is not readable',
         }),
       ),
     );
