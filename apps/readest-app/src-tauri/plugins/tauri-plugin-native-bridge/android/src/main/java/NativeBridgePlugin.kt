@@ -1190,7 +1190,7 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
     }
 
     @Command
-    fun checkPermissions(invoke: Invoke) {
+    override fun checkPermissions(invoke: Invoke) {
         val ret = JSObject()
         val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             Environment.isExternalStorageManager()
