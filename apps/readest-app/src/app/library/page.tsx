@@ -94,6 +94,7 @@ import GroupHeader from './components/GroupHeader';
 import FailedImportsDialog, { FailedImport } from './components/FailedImportsDialog';
 import ImportFromFolderDialog, {
   DEFAULT_FORMAT_GROUPS,
+  DEFAULT_MIN_SIZE_KB,
   ImportFromFolderResult,
 } from './components/ImportFromFolderDialog';
 import NowPlayingBar from './components/NowPlayingBar';

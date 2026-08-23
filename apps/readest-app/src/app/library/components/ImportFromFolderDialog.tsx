@@ -160,7 +160,7 @@ interface ImportFromFolderDialogProps {
 const DEFAULT_SELECTED_GROUP_IDS = ['epub', 'pdf'];
 /** Shared by the import form and the watched-folders sub-page. */
 const DIALOG_BOX_CLASS = 'sm:min-w-[480px] sm:max-w-[480px] sm:h-auto sm:max-h-[90%]';
-const DEFAULT_MIN_SIZE_KB = 20;
+export const DEFAULT_MIN_SIZE_KB = 20;
 
 /**
  * Folder import dialog: lets the user pick a directory, choose which
