@@ -219,7 +219,7 @@ export const useCustomDictionaryStore = create<DictionaryStoreState>((set, get) 
         settings: { ...state.settings, providerOrder: order, providerEnabled: enabled },
       };
     });
-    publishDictUpsert(dict);
+    if (!dict.externalRoot) publishDictUpsert(dict);
   },
 
   applyRemoteDictionary: (dict) => {
@@ -313,7 +313,7 @@ export const useCustomDictionaryStore = create<DictionaryStoreState>((set, get) 
       const dictionaries = state.dictionaries.map((d, i) => (i === idx ? updated! : d));
       return { dictionaries };
     });
-    if (updated) publishDictUpsert(updated);
+    if (updated && !updated.externalRoot) publishDictUpsert(updated);
   },
 
   replaceDictionaries: (oldIds, newDict) => {
@@ -381,7 +381,7 @@ export const useCustomDictionaryStore = create<DictionaryStoreState>((set, get) 
     if (!isContentSurvivingSwap) {
       for (const contentId of oldContentIds) publishDictDelete(contentId);
     }
-    publishDictUpsert(newDict);
+    if (!newDict.externalRoot) publishDictUpsert(newDict);
   },
 
   removeDictionary: (id) => {
@@ -399,7 +399,7 @@ export const useCustomDictionaryStore = create<DictionaryStoreState>((set, get) 
         ),
       },
     }));
-    if (dict.contentId) publishDictDelete(dict.contentId);
+    if (dict.contentId && !dict.externalRoot) publishDictDelete(dict.contentId);
     return true;
   },
 
@@ -533,7 +533,9 @@ export const useCustomDictionaryStore = create<DictionaryStoreState>((set, get) 
       const dictionaries = await Promise.all(
         persisted.map(async (dict) => {
           if (dict.deletedAt) return dict;
-          const exists = await appService.exists(dict.bundleDir, 'Dictionaries');
+          const exists = dict.externalRoot
+            ? await appService.exists(dict.externalRoot, 'None')
+            : await appService.exists(dict.bundleDir, 'Dictionaries');
           if (!exists) return { ...dict, unavailable: true };
           if (dict.kind !== 'plugin' || !dict.plugin) return dict;
           if (!pluginControlStore) return { ...dict, unavailable: true };

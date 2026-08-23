@@ -384,7 +384,19 @@ export abstract class BaseAppService implements AppService {
     };
   }
 
+  async loadDictionariesFromFolder(
+    folder: string,
+    existingDictionaries: ImportedDictionary[] = [],
+  ): Promise<DictSvc.ImportDictionariesResult> {
+    return DictSvc.loadDictionariesFromFolder(this.fs, folder, existingDictionaries);
+  }
+
   async deleteDictionary(dict: ImportedDictionary): Promise<void> {
+    if (dict.externalRoot) {
+      const { evictProvider } = await import('./dictionaries/registry');
+      evictProvider(dict.id);
+      return;
+    }
     if (dict.kind === 'plugin') {
       const [{ evictProvider }, { getDictionaryPluginControlStore }] = await Promise.all([
         import('./dictionaries/registry'),

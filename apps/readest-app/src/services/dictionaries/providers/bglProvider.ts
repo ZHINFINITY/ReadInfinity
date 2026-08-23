@@ -6,7 +6,11 @@
  * headword heading plus an HTML body, following the Slob/StarDict rendering
  * conventions.
  */
-import type { DictionaryProvider, ImportedDictionary } from '../types';
+import {
+  getDictionaryFileLocation,
+  type DictionaryProvider,
+  type ImportedDictionary,
+} from '../types';
 import type { DictionaryFileOpener } from './starDictProvider';
 import { BglReader } from '../bglReader';
 
@@ -34,7 +38,8 @@ export const createBglProvider = ({
         if (!dict.files.bgl) {
           throw new Error('Babylon bundle is missing the .bgl file');
         }
-        const bglFile = await fs.openFile(`${dict.bundleDir}/${dict.files.bgl}`, 'Dictionaries');
+        const location = getDictionaryFileLocation(dict, dict.files.bgl);
+        const bglFile = await fs.openFile(location.path, location.base);
         const r = new BglReader();
         await r.load({ bgl: bglFile });
         reader = r;

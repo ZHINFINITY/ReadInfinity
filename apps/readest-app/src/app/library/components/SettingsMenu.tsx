@@ -192,7 +192,7 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({
 
     const newValue = settings.savedBookCoverForLockScreen ? '' : 'default';
     if (newValue) {
-      const response = await selectDirectory();
+      const response = await selectDirectory(!!appService?.isAndroidApp);
       if (response.path) {
         saveSysSettings(envConfig, 'savedBookCoverForLockScreenPath', response.path);
       }

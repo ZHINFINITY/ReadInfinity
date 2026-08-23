@@ -260,21 +260,28 @@ async function createBundleDir(fs: FileSystem): Promise<string> {
   return id;
 }
 
+interface BundleStorageOptions {
+  externalRoot?: string;
+}
+
 async function importStarDictBundle(
   fs: FileSystem,
   group: StarDictGroup,
+  options: BundleStorageOptions = {},
 ): Promise<ImportedDictionary> {
-  const bundleDir = await createBundleDir(fs);
+  const bundleDir = options.externalRoot ?? (await createBundleDir(fs));
   const ifoFile = await readSource(fs, group.ifo.source);
   const idxFile = await readSource(fs, group.idx.source);
   const dictFile = await readSource(fs, group.dict.source);
   const synFile = group.syn ? await readSource(fs, group.syn.source) : undefined;
 
-  await writeBundleFile(fs, bundleDir, group.ifo.name, ifoFile);
-  await writeBundleFile(fs, bundleDir, group.idx.name, idxFile);
-  await writeBundleFile(fs, bundleDir, group.dict.name, dictFile);
-  if (synFile && group.syn) {
-    await writeBundleFile(fs, bundleDir, group.syn.name, synFile);
+  if (!options.externalRoot) {
+    await writeBundleFile(fs, bundleDir, group.ifo.name, ifoFile);
+    await writeBundleFile(fs, bundleDir, group.idx.name, idxFile);
+    await writeBundleFile(fs, bundleDir, group.dict.name, dictFile);
+    if (synFile && group.syn) {
+      await writeBundleFile(fs, bundleDir, group.syn.name, synFile);
+    }
   }
 
   // Pre-compute offsets sidecars at import time. Subsequent provider inits
@@ -282,7 +289,7 @@ async function importStarDictBundle(
   // sidecar plus per-lookup probes. Net effect on cmudict-class bundles:
   // ~62% init IO reduction.
   const idxOffsetsName = `${group.idx.stem}.idx.offsets`;
-  {
+  if (!options.externalRoot) {
     const idxBytes = new Uint8Array(await idxFile.arrayBuffer());
     const offsets = scanEntryOffsets(idxBytes, /* payloadBytes */ 8);
     const sidecar = serializeOffsetsSidecar(offsets);
@@ -293,7 +300,7 @@ async function importStarDictBundle(
     await fs.writeFile(`${bundleDir}/${idxOffsetsName}`, 'Dictionaries', sidecarFile);
   }
   let synOffsetsName: string | undefined;
-  if (synFile && group.syn) {
+  if (!options.externalRoot && synFile && group.syn) {
     synOffsetsName = `${group.syn.stem}.syn.offsets`;
     const synBytes = new Uint8Array(await synFile.arrayBuffer());
     const offsets = scanEntryOffsets(synBytes, /* payloadBytes */ 4);
@@ -337,13 +344,14 @@ async function importStarDictBundle(
     kind: 'stardict',
     name,
     bundleDir,
+    externalRoot: options.externalRoot,
     files: {
       ifo: group.ifo.name,
       idx: group.idx.name,
       dict: group.dict.name,
       syn: group.syn?.name,
-      idxOffsets: idxOffsetsName,
-      synOffsets: synOffsetsName,
+      idxOffsets: options.externalRoot ? undefined : idxOffsetsName,
+      synOffsets: options.externalRoot ? undefined : synOffsetsName,
     },
     lang,
     addedAt: Date.now(),
@@ -400,18 +408,24 @@ async function readMdxHeader(file: File): Promise<{
   };
 }
 
-async function importMdictBundle(fs: FileSystem, group: MDictGroup): Promise<ImportedDictionary> {
-  const bundleDir = await createBundleDir(fs);
+async function importMdictBundle(
+  fs: FileSystem,
+  group: MDictGroup,
+  options: BundleStorageOptions = {},
+): Promise<ImportedDictionary> {
+  const bundleDir = options.externalRoot ?? (await createBundleDir(fs));
   const mdxFile = await readSource(fs, group.mdx.source);
   const mddFiles = await Promise.all(group.mdd.map((m) => readSource(fs, m.source)));
   const cssFiles = await Promise.all(group.css.map((c) => readSource(fs, c.source)));
 
-  await writeBundleFile(fs, bundleDir, group.mdx.name, mdxFile);
-  for (let i = 0; i < group.mdd.length; i++) {
-    await writeBundleFile(fs, bundleDir, group.mdd[i]!.name, mddFiles[i]!);
-  }
-  for (let i = 0; i < group.css.length; i++) {
-    await writeBundleFile(fs, bundleDir, group.css[i]!.name, cssFiles[i]!);
+  if (!options.externalRoot) {
+    await writeBundleFile(fs, bundleDir, group.mdx.name, mdxFile);
+    for (let i = 0; i < group.mdd.length; i++) {
+      await writeBundleFile(fs, bundleDir, group.mdd[i]!.name, mddFiles[i]!);
+    }
+    for (let i = 0; i < group.css.length; i++) {
+      await writeBundleFile(fs, bundleDir, group.css[i]!.name, cssFiles[i]!);
+    }
   }
 
   // Read only the small XML header at the start of the file. We need
@@ -462,6 +476,7 @@ async function importMdictBundle(fs: FileSystem, group: MDictGroup): Promise<Imp
     kind: 'mdict',
     name,
     bundleDir,
+    externalRoot: options.externalRoot,
     files: {
       mdx: group.mdx.name,
       mdd: group.mdd.map((m) => m.name),
@@ -474,12 +489,18 @@ async function importMdictBundle(fs: FileSystem, group: MDictGroup): Promise<Imp
   };
 }
 
-async function importDictBundle(fs: FileSystem, group: DictGroup): Promise<ImportedDictionary> {
-  const bundleDir = await createBundleDir(fs);
+async function importDictBundle(
+  fs: FileSystem,
+  group: DictGroup,
+  options: BundleStorageOptions = {},
+): Promise<ImportedDictionary> {
+  const bundleDir = options.externalRoot ?? (await createBundleDir(fs));
   const indexFile = await readSource(fs, group.index.source);
   const dictFile = await readSource(fs, group.dict.source);
-  await writeBundleFile(fs, bundleDir, group.index.name, indexFile);
-  await writeBundleFile(fs, bundleDir, group.dict.name, dictFile);
+  if (!options.externalRoot) {
+    await writeBundleFile(fs, bundleDir, group.index.name, indexFile);
+    await writeBundleFile(fs, bundleDir, group.dict.name, dictFile);
+  }
 
   // Try to read the `00databaseshort` body for a friendly bundle name. The
   // index lists it; the body lives in the dict. We do this best-effort: any
@@ -530,6 +551,7 @@ async function importDictBundle(fs: FileSystem, group: DictGroup): Promise<Impor
     kind: 'dict',
     name,
     bundleDir,
+    externalRoot: options.externalRoot,
     files: {
       index: group.index.name,
       dict: group.dict.name,
@@ -538,10 +560,16 @@ async function importDictBundle(fs: FileSystem, group: DictGroup): Promise<Impor
   };
 }
 
-async function importSlobBundle(fs: FileSystem, group: SlobGroup): Promise<ImportedDictionary> {
-  const bundleDir = await createBundleDir(fs);
+async function importSlobBundle(
+  fs: FileSystem,
+  group: SlobGroup,
+  options: BundleStorageOptions = {},
+): Promise<ImportedDictionary> {
+  const bundleDir = options.externalRoot ?? (await createBundleDir(fs));
   const slobFile = await readSource(fs, group.slob.source);
-  await writeBundleFile(fs, bundleDir, group.slob.name, slobFile);
+  if (!options.externalRoot) {
+    await writeBundleFile(fs, bundleDir, group.slob.name, slobFile);
+  }
 
   // Read header bytes to derive the friendly name + sanity-check compression.
   let name = group.stem;
@@ -574,6 +602,7 @@ async function importSlobBundle(fs: FileSystem, group: SlobGroup): Promise<Impor
     kind: 'slob',
     name,
     bundleDir,
+    externalRoot: options.externalRoot,
     files: { slob: group.slob.name },
     addedAt: Date.now(),
     unsupported: unsupported || undefined,
@@ -581,10 +610,16 @@ async function importSlobBundle(fs: FileSystem, group: SlobGroup): Promise<Impor
   };
 }
 
-async function importBglBundle(fs: FileSystem, group: BglGroup): Promise<ImportedDictionary> {
-  const bundleDir = await createBundleDir(fs);
+async function importBglBundle(
+  fs: FileSystem,
+  group: BglGroup,
+  options: BundleStorageOptions = {},
+): Promise<ImportedDictionary> {
+  const bundleDir = options.externalRoot ?? (await createBundleDir(fs));
   const bglFile = await readSource(fs, group.bgl.source);
-  await writeBundleFile(fs, bundleDir, group.bgl.name, bglFile);
+  if (!options.externalRoot) {
+    await writeBundleFile(fs, bundleDir, group.bgl.name, bglFile);
+  }
 
   // Parse the glossary properties for the friendly name; a parse failure
   // flags the bundle unsupported (the import itself still succeeds).
@@ -611,6 +646,7 @@ async function importBglBundle(fs: FileSystem, group: BglGroup): Promise<Importe
     kind: 'bgl',
     name,
     bundleDir,
+    externalRoot: options.externalRoot,
     files: { bgl: group.bgl.name },
     addedAt: Date.now(),
     unsupported: unsupported || undefined,
@@ -738,14 +774,71 @@ export async function importDictionaries(
     imported.push(dict);
   }
 
-  return {
+    return {
     imported,
     replacements,
     orphanFiles: orphans.map((o) => o.name),
   };
 }
 
-/** Remove a dictionary's bundle directory. The metadata is dropped by the caller. */
+/**
+ * Discover complete dictionary bundles recursively under a user-selected
+ * folder. This is intentionally separate from `importDictionaries`: it reads
+ * metadata from the original files but never creates or writes a
+ * `Dictionaries/<id>` bundle. The returned records use `externalRoot` and are
+ * re-opened directly by the providers.
+ */
+export async function loadDictionariesFromFolder(
+  fs: FileSystem,
+  externalRoot: string,
+  existingDictionaries: ImportedDictionary[] = [],
+): Promise<ImportDictionariesResult> {
+  const files = await fs.readDir(externalRoot, 'None');
+  const supported = new Set(['ifo', 'idx', 'dict', 'dz', 'syn', 'mdx', 'mdd', 'css', 'index', 'slob', 'bgl']);
+  const selected: SelectedFile[] = files
+    .filter(({ path }) => {
+      const name = path.replace(/\\/g, '/').split('/').pop() ?? path;
+      const lower = name.toLowerCase();
+      const ext = lower.includes('.') ? lower.slice(lower.lastIndexOf('.') + 1) : '';
+      return supported.has(ext);
+    })
+    .map(({ path }) => {
+      const relative = path.replace(/\\/g, '/').replace(/^\/+/, '');
+      return {
+        path: `${externalRoot.replace(/[\\/]$/, '')}/${relative}`,
+        name: relative,
+      };
+    });
+  const { bundles, orphans } = groupBundlesByStem(selected);
+  const imported: ImportedDictionary[] = [];
+  const seenKeys = new Set(
+    existingDictionaries
+      .filter((dict) => dict.externalRoot === externalRoot && !dict.deletedAt)
+      .map((dict) => `${dict.kind}:${JSON.stringify(dict.files)}`),
+  );
+  for (const bundle of bundles) {
+    let dict: ImportedDictionary;
+    if (bundle.kind === 'stardict') {
+      dict = await importStarDictBundle(fs, bundle, { externalRoot });
+    } else if (bundle.kind === 'mdict') {
+      dict = await importMdictBundle(fs, bundle, { externalRoot });
+    } else if (bundle.kind === 'dict') {
+      dict = await importDictBundle(fs, bundle, { externalRoot });
+    } else if (bundle.kind === 'slob') {
+      dict = await importSlobBundle(fs, bundle, { externalRoot });
+    } else {
+      dict = await importBglBundle(fs, bundle, { externalRoot });
+    }
+    const key = `${dict.kind}:${JSON.stringify(dict.files)}`;
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    imported.push(dict);
+  }
+  return { imported, replacements: [], orphanFiles: orphans.map((o) => o.name) };
+}
+
+/** Remove a dictionary's app-managed bundle directory. External folders are user-owned. */
+
 export async function deleteDictionary(fs: FileSystem, dict: ImportedDictionary): Promise<void> {
   if (await fs.exists(dict.bundleDir, 'Dictionaries')) {
     await fs.removeDir(dict.bundleDir, 'Dictionaries', true);

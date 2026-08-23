@@ -6,7 +6,11 @@
  * RFC 2229; HTML is rare and the few HTML-bearing dicts in the wild use
  * `MIME` indicators outside the v1 scope.
  */
-import type { DictionaryProvider, ImportedDictionary } from '../types';
+import {
+  getDictionaryFileLocation,
+  type DictionaryProvider,
+  type ImportedDictionary,
+} from '../types';
 import type { DictionaryFileOpener } from './starDictProvider';
 import { DictReader } from '../dictReader';
 
@@ -46,9 +50,11 @@ export const createDictProvider = ({
         if (!dict.files.index || !dict.files.dict) {
           throw new Error('DICT bundle is missing required files');
         }
+        const indexLocation = getDictionaryFileLocation(dict, dict.files.index);
+        const dictLocation = getDictionaryFileLocation(dict, dict.files.dict);
         const [indexFile, dictFile] = await Promise.all([
-          fs.openFile(`${dict.bundleDir}/${dict.files.index}`, 'Dictionaries'),
-          fs.openFile(`${dict.bundleDir}/${dict.files.dict}`, 'Dictionaries'),
+          fs.openFile(indexLocation.path, indexLocation.base),
+          fs.openFile(dictLocation.path, dictLocation.base),
         ]);
 
         const r = new DictReader();

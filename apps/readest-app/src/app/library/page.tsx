@@ -1380,8 +1380,24 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
       // iOS doesn't have an equivalent gate (the OS picker is itself
       // the permission grant), so the prompt is Android-only.
       if (appService.isAndroidApp && !(await requestStoragePermission())) return undefined;
-      const response = await selectDirectory();
+      const response = await selectDirectory(appService.isAndroidApp);
+      if (response.error) {
+        eventDispatcher.dispatch('toast', {
+          type: 'error',
+          message: response.path
+            ? _('Folder permission warning: {{message}}', { message: response.error })
+            : _('Could not select folder: {{message}}', { message: response.error }),
+          timeout: 5000,
+        });
+      }
       picked = response.path || undefined;
+      if (!picked && !response.cancelled && !response.error) {
+        eventDispatcher.dispatch('toast', {
+          type: 'error',
+          message: _('The selected folder is not available as a local Android path.'),
+          timeout: 5000,
+        });
+      }
     } else {
       picked = (await appService.selectDirectory?.('read')) || undefined;
     }

@@ -12,7 +12,11 @@
  * the dictionary's own templates). They are not user-visible headwords and
  * are filtered before binary search hits them.
  */
-import type { DictionaryProvider, ImportedDictionary } from '../types';
+import {
+  getDictionaryFileLocation,
+  type DictionaryProvider,
+  type ImportedDictionary,
+} from '../types';
 import type { DictionaryFileOpener } from './starDictProvider';
 import { SlobReader } from '../slobReader';
 
@@ -82,7 +86,8 @@ export const createSlobProvider = ({
         if (!dict.files.slob) {
           throw new Error('Slob bundle is missing the .slob file');
         }
-        const slobFile = await fs.openFile(`${dict.bundleDir}/${dict.files.slob}`, 'Dictionaries');
+        const location = getDictionaryFileLocation(dict, dict.files.slob);
+        const slobFile = await fs.openFile(location.path, location.base);
         const r = new SlobReader();
         await r.load({ slob: slobFile });
         reader = r;

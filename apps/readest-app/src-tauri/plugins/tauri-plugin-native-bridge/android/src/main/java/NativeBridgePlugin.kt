@@ -297,6 +297,10 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
         var pendingInvoke: Invoke? = null
         private var pendingAuthCallbackTarget: OAuthCallbackTarget? = null
         var pendingFolderPickerInvoke: Invoke? = null
+        // ACTION_OPEN_DOCUMENT_TREE can return while DocumentsUI is still
+        // recreating the activity/WebView. Keep the result until the bridge is
+        // loaded again and replay it through the one-shot event queue.
+        private var pendingDirectoryPickerResult: Pair<Int, Intent?>? = null
         // A file-picker result can be delivered to a MainActivity that was
         // recreated after the process died behind the system picker (#1217).
         // onActivityResult then fires before Tauri has instantiated this
@@ -309,6 +313,8 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
             val plugin = instance
             if (plugin != null) {
                 plugin.handleActivityResult(requestCode, resultCode, data)
+            } else if (requestCode == FOLDER_PICKER_REQUEST_CODE) {
+                pendingDirectoryPickerResult = resultCode to data
             } else if (requestCode == FILE_PICKER_REQUEST_CODE &&
                 resultCode == Activity.RESULT_OK && data != null) {
                 pendingFilePickerData = data
@@ -325,6 +331,10 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
         inputManager?.registerInputDeviceListener(gamepadInputListener, null)
         activity.application.registerActivityLifecycleCallbacks(lifecycleCallbacks)
         handleIntent(activity.intent)
+        pendingDirectoryPickerResult?.let { (resultCode, data) ->
+            pendingDirectoryPickerResult = null
+            handleDirectorySelected(data?.data, resultCode, data, null)
+        }
         pendingFilePickerData?.let { data ->
             pendingFilePickerData = null
             emitFilePickerResult(data)
@@ -1320,31 +1330,38 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
         emitOrQueue("file-picker-result", payload)
     }
 
-    @Command
+        @Command
     fun select_directory(invoke: Invoke) {
         pendingFolderPickerInvoke = invoke
 
         try {
-            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                addFlags(
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                        Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or
+                        Intent.FLAG_GRANT_PREFIX_URI_PERMISSION,
+                )
+            }
             activity.startActivityForResult(intent, FOLDER_PICKER_REQUEST_CODE)
         } catch (e: Exception) {
-            val result = JSObject()
-            result.put("cancelled", true)
-            result.put("uri", null)
-            result.put("path", null)
-            result.put("error", e.message)
-            invoke.resolve(result)
             pendingFolderPickerInvoke = null
+            val result = JSObject().apply {
+                put("cancelled", true)
+                put("uri", null)
+                put("path", null)
+                put("error", e.message)
+            }
+            invoke.resolve(result)
+            emitOrQueue("directory-picker-result", result)
         }
     }
 
     fun handleActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == FOLDER_PICKER_REQUEST_CODE) {
             val invoke = pendingFolderPickerInvoke
-            if (invoke != null) {
-                handleDirectorySelected(data?.data, invoke)
-                pendingFolderPickerInvoke = null
-            }
+            pendingFolderPickerInvoke = null
+            handleDirectorySelected(data?.data, resultCode, data, invoke)
         } else if (requestCode == FILE_PICKER_REQUEST_CODE) {
             if (resultCode == Activity.RESULT_OK && data != null) {
                 emitFilePickerResult(data)
@@ -1352,60 +1369,64 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
         }
     }
 
-    private fun handleDirectorySelected(uri: Uri?, invoke: Invoke) {
+    private fun handleDirectorySelected(
+        uri: Uri?,
+        resultCode: Int,
+        resultIntent: Intent?,
+        invoke: Invoke?,
+    ) {
         val result = JSObject()
-        if (uri == null) {
+        if (resultCode != Activity.RESULT_OK || uri == null) {
             result.put("cancelled", true)
-            result.put("uri", null)
+            result.put("uri", uri?.toString())
             result.put("path", null)
         } else {
-            try {
-                val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                          Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                activity.contentResolver.takePersistableUriPermission(uri, flags)
-                result.put("cancelled", false)
-                result.put("uri", uri.toString())
-                result.put("path", extractPathFromUri(uri))
-            } catch (e: SecurityException) {
-                result.put("cancelled", true)
-                result.put("uri", uri.toString())
-                result.put("path", extractPathFromUri(uri))
-                result.put("error", "Permission error: ${e.message}")
-            } catch (e: Exception) {
-                result.put("cancelled", true)
-                result.put("uri", null)
-                result.put("path", null)
-                result.put("error", "Error: ${e.message}")
+            val path = extractPathFromUri(uri)
+            result.put("cancelled", false)
+            result.put("uri", uri.toString())
+            result.put("path", path)
+            // Persist only the URI grant flags actually returned by
+            // DocumentsUI. Requesting WRITE when the provider granted READ
+            // only throws and used to make a valid folder look cancelled.
+            val grantedFlags = (resultIntent?.flags ?: 0) and
+                (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            if (grantedFlags != 0) {
+                try {
+                    activity.contentResolver.takePersistableUriPermission(uri, grantedFlags)
+                } catch (e: SecurityException) {
+                    // Absolute-path access remains valid under All Files
+                    // Access; surface the issue without discarding the path.
+                    result.put("error", "Folder permission could not be persisted: ${e.message}")
+                }
+            }
+            if (path == null) {
+                result.put("error", "The selected provider does not expose a local Android path")
             }
         }
-
-        invoke.resolve(result)
-        pendingInvoke = null
+        invoke?.resolve(result)
+        emitOrQueue("directory-picker-result", result)
     }
 
     private fun extractPathFromUri(uri: Uri): String? {
-        val path = uri.path ?: return null
+        if (!DocumentsContract.isTreeUri(uri)) return null
         return try {
-            when {
-                DocumentsContract.isTreeUri(uri) -> {
-                    val treeDocId = DocumentsContract.getTreeDocumentId(uri)
-                    val split = treeDocId.split(":")
-                    if (split[0].equals("primary", ignoreCase = true)) {
-                        if (split.size > 1) {
-                            Environment.getExternalStorageDirectory().path + "/" + split[1]
-                        } else {
-                            Environment.getExternalStorageDirectory().path
-                        }
-                    } else {
-                        "/storage/${split[0]}/" + (if (split.size > 1) split[1] else "")
-                    }
-                }
-                else -> null
+            val treeDocId = DocumentsContract.getTreeDocumentId(uri)
+            val separator = treeDocId.indexOf(':')
+            val volume = if (separator >= 0) treeDocId.substring(0, separator) else treeDocId
+            val relative = if (separator >= 0) treeDocId.substring(separator + 1) else ""
+            val root = if (volume.equals("primary", ignoreCase = true) ||
+                volume.equals("home", ignoreCase = true)) {
+                Environment.getExternalStorageDirectory().path
+            } else {
+                "/storage/$volume"
             }
-        } catch (e: Exception) {
-            path
+            val decoded = Uri.decode(relative).trim('/')
+            if (decoded.isEmpty()) root else "$root/$decoded"
+        } catch (_: Exception) {
+            null
         }
     }
+
 
     fun triggerEvent(eventName: String, payload: JSObject) {
         activity.runOnUiThread {

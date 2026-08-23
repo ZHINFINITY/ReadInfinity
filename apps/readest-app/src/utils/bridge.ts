@@ -1,4 +1,4 @@
-import { invoke, Channel } from '@tauri-apps/api/core';
+import { addPluginListener, invoke, Channel, type PluginListener } from '@tauri-apps/api/core';
 
 export interface CopyURIRequest {
   uri: string;
@@ -106,12 +106,14 @@ interface GetExternalSDCardPathResponse {
   error?: string;
 }
 
-interface SelectDirectoryResponse {
+export interface SelectDirectoryResponse {
   cancelled?: boolean;
   uri?: string;
   path?: string;
   error?: string;
 }
+
+const DIRECTORY_PICKER_EVENT = 'directory-picker-result';
 
 export interface GetStorefrontRegionCodeResponse {
   regionCode?: string;
@@ -294,9 +296,30 @@ export async function getExternalSDCardPath(): Promise<GetExternalSDCardPathResp
   return result;
 }
 
-export async function selectDirectory(): Promise<SelectDirectoryResponse> {
-  const result = await invoke<SelectDirectoryResponse>('plugin:native-bridge|select_directory');
-  return result;
+export async function selectDirectory(useEventQueue = false): Promise<SelectDirectoryResponse> {
+  if (!useEventQueue) {
+    return await invoke<SelectDirectoryResponse>('plugin:native-bridge|select_directory');
+  }
+  // DocumentsUI may recreate Android's activity/WebView while the picker is
+  // open. NativeBridgePlugin emits a replayable event in addition to the
+  // legacy invoke response; registering before invoke prevents a result race.
+  let resolveEvent: (result: SelectDirectoryResponse) => void = () => undefined;
+  const eventResult = new Promise<SelectDirectoryResponse>((resolve) => {
+    resolveEvent = resolve;
+  });
+  const listener: Promise<PluginListener> = addPluginListener<SelectDirectoryResponse>(
+    'native-bridge',
+    DIRECTORY_PICKER_EVENT,
+    (payload) => resolveEvent(payload),
+  );
+  try {
+    const invokeResult = invoke<SelectDirectoryResponse>('plugin:native-bridge|select_directory');
+    // iOS and older native builds remain invoke-only; Android builds with the
+    // lifecycle-safe event resolve from whichever channel arrives first.
+    return await Promise.race([invokeResult, eventResult]);
+  } finally {
+    listener.then((l) => l.unregister());
+  }
 }
 
 // Android only. Opens the system document picker fire-and-forget; the picked

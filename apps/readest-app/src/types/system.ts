@@ -196,6 +196,10 @@ export interface AppService {
     existingDictionaries?: ImportedDictionary[],
     onProgress?: DictionaryImportProgressHandler,
   ): Promise<ImportDictionariesResult>;
+  loadDictionariesFromFolder(
+    folder: string,
+    existingDictionaries?: ImportedDictionary[],
+  ): Promise<ImportDictionariesResult>;
   deleteDictionary(dict: ImportedDictionary): Promise<void>;
   importBook(file: string | File, books: Book[], options?: ImportBookOptions): Promise<Book | null>;
   refreshBookMetadata(book: Book): Promise<boolean>;

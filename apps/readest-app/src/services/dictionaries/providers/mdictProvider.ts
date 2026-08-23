@@ -19,7 +19,11 @@
 import { eventDispatcher } from '@/utils/event';
 import { stubTranslation as _ } from '@/utils/misc';
 import { getDictStyles } from '@/utils/style';
-import type { DictionaryProvider, ImportedDictionary } from '../types';
+import {
+  getDictionaryFileLocation,
+  type DictionaryProvider,
+  type ImportedDictionary,
+} from '../types';
 import type { DictionaryFileOpener } from './starDictProvider';
 
 interface MDXLookupResult {
@@ -429,7 +433,11 @@ export const createMdictProvider = ({
         if (!dict.files.mdx) {
           throw new Error('MDict bundle is missing the .mdx file');
         }
-        const mdxFile = await fs.openFile(`${dict.bundleDir}/${dict.files.mdx}`, 'Dictionaries');
+        const open = (filename: string) => {
+          const location = getDictionaryFileLocation(dict, filename);
+          return fs.openFile(location.path, location.base);
+        };
+        const mdxFile = await open(dict.files.mdx);
         let mdxInst: MDXInstance;
         try {
           // Lazy mode: skip the upfront decompress-every-key-block + sort
@@ -464,7 +472,7 @@ export const createMdictProvider = ({
         const mddInsts: MDDInstance[] = [];
         for (const name of mddNames) {
           try {
-            const mddFile = await fs.openFile(`${dict.bundleDir}/${name}`, 'Dictionaries');
+            const mddFile = await open(name);
             // MDD is eager: js-mdict's lazy binary-search on the per-block
             // envelope uses `comp` (localeCompare), which doesn't match the
             // MDD's native byte-sorted storage order. That mismatch makes
@@ -487,7 +495,7 @@ export const createMdictProvider = ({
         const initSignal = new AbortController().signal;
         for (const name of cssNames) {
           try {
-            const cssFile = await fs.openFile(`${dict.bundleDir}/${name}`, 'Dictionaries');
+            const cssFile = await open(name);
             const raw = await cssFile.text();
             const resolved = await resolveCssUrls(raw, mddInsts, initSignal, trackedUrls);
             cssTexts.push(resolved);

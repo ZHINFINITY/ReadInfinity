@@ -819,7 +819,7 @@ export class NativeAppService extends BaseAppService {
     // so the rest of the app can treat it like any local directory.
     if (this.isIOSApp || this.isAndroidApp) {
       const { selectDirectory } = await import('@/utils/bridge');
-      const result = await selectDirectory();
+      const result = await selectDirectory(this.isAndroidApp);
       const path = result.path ?? '';
       if (path) {
         // Match the desktop branch — make sure both fs_scope and the

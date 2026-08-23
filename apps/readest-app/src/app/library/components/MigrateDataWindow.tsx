@@ -173,7 +173,7 @@ export const MigrateDataWindow = () => {
   // it hands back an absolute path that All Files Access makes writable.
   const handleBrowseNewDir = async () => {
     try {
-      const response = await selectDirectory();
+      const response = await selectDirectory(!!appService?.isAndroidApp);
       if (response.path) {
         await handleSelectedNewDir(response.path);
       }

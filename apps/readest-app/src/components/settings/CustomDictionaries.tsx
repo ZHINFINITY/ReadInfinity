@@ -25,7 +25,6 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { useEnv } from '@/context/EnvContext';
 import { useTranslation } from '@/hooks/useTranslation';
-import { useFileSelector } from '@/hooks/useFileSelector';
 import { useCustomDictionaryStore } from '@/store/customDictionaryStore';
 import { eventDispatcher } from '@/utils/event';
 import { evictProvider, isSystemDictionaryEnabled } from '@/services/dictionaries/registry';
@@ -37,7 +36,8 @@ import {
   isSystemDictionarySupported,
   type RememberedLookupApp,
 } from '@/services/dictionaries/systemDictionary';
-import { queueDictionaryBinaryUpload } from '@/services/sync/replicaBinaryUpload';
+import { selectDirectory } from '@/utils/bridge';
+import { requestStoragePermission } from '@/utils/permission';
 import type { ImportedDictionary, WebSearchEntry } from '@/services/dictionaries/types';
 import {
   getBuiltinWebSearch,
@@ -259,7 +259,6 @@ const CustomDictionaries: React.FC<CustomDictionariesProps> = ({ onBack }) => {
     dictionaries,
     settings,
     addDictionary,
-    replaceDictionaries,
     removeDictionary,
     updateDictionary,
     reorder,
@@ -270,15 +269,19 @@ const CustomDictionaries: React.FC<CustomDictionariesProps> = ({ onBack }) => {
     removeWebSearch,
     saveCustomDictionaries,
     loadCustomDictionaries,
-    markAvailableByContentId,
   } = useCustomDictionaryStore();
 
   useEffect(() => {
     void loadCustomDictionaries(envConfig).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  useEffect(() => {
+    const folders = dictionaries
+      .map((dict) => dict.externalRoot)
+      .filter((folder): folder is string => Boolean(folder));
+    if (folders.length > 0) void appService?.allowPathsInScopes?.(folders, true);
+  }, [appService, dictionaries]);
 
-  const { selectFiles } = useFileSelector(appService, _);
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState<{
     stage: string;
@@ -517,135 +520,63 @@ const CustomDictionaries: React.FC<CustomDictionariesProps> = ({ onBack }) => {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const handleImport = async () => {
-    if (importing) return;
+  const handleLoadFolder = async () => {
+    if (importing || !appService) return;
     setImporting(true);
     setImportProgress(null);
     try {
-      const result = await selectFiles({ type: 'dictionaries', multiple: true });
-      if (result.error) {
-        eventDispatcher.dispatch('toast', {
-          type: 'error',
-          message: _('Failed to import dictionary: {{message}}', { message: result.error }),
-          timeout: 4000,
-        });
-        return;
+      let folder: string | undefined;
+      if (appService.isAndroidApp || appService.isIOSApp) {
+        if (appService.isAndroidApp && !(await requestStoragePermission())) return;
+        const response = await selectDirectory(appService.isAndroidApp);
+        if (response.error && !response.path) {
+          eventDispatcher.dispatch('toast', {
+            type: 'error',
+            message: _('Could not select dictionary folder: {{message}}', {
+              message: response.error,
+            }),
+            timeout: 5000,
+          });
+          return;
+        }
+        folder = response.path || undefined;
+      } else {
+        folder = (await appService.selectDirectory?.('read')) || undefined;
       }
-      // User cancelled the picker — staying silent is the right call here.
-      if (result.files.length === 0) return;
-      const importResult = await appService?.importDictionaries(
-        result.files,
-        dictionaries,
-        ({ stage, completed, total }) => {
-          if (total === undefined || total <= 0) return;
-          const percentage = Math.min(100, Math.max(0, Math.floor((completed / total) * 100)));
-          setImportProgress({ stage, percentage });
-        },
-      );
-      if (!importResult) {
-        eventDispatcher.dispatch('toast', {
-          type: 'error',
-          message: _('Failed to import dictionary: {{message}}', {
-            message: _('App service is not available'),
-          }),
-          timeout: 4000,
-        });
-        return;
-      }
-      let added = 0;
-      for (const dict of importResult.imported) {
-        addDictionary(dict);
-        // The freshly imported bundle exists on disk now; clear any lingering
-        // `unavailable` flag on an in-memory entry with the same contentId
-        // (e.g. when a prior import lost its bundle dir for any reason).
-        if (dict.contentId) markAvailableByContentId(dict.contentId);
-        if (appService) void queueDictionaryBinaryUpload(dict, appService);
-        added += 1;
-      }
-      let replaced = 0;
-      for (const { oldIds, newDict } of importResult.replacements) {
-        replaceDictionaries(oldIds, newDict);
-        if (newDict.contentId) markAvailableByContentId(newDict.contentId);
-        if (appService) void queueDictionaryBinaryUpload(newDict, appService);
-        // Invalidate any cached provider instances for the replaced ids so
-        // their next lookup picks up the new bundle's files.
-        for (const oldId of oldIds) evictProvider(oldId);
-        replaced += 1;
-      }
-      // Import / replace both mutate providerOrder (prepend or splice
-      // into existing slot), so this is an explicit user reorder.
-      await saveCustomDictionaries(envConfig, { publishOrderChange: added > 0 || replaced > 0 });
-      if (added > 0) {
+      if (!folder) return;
+      await appService.allowPathsInScopes?.([folder], true);
+      const result = await appService.loadDictionariesFromFolder(folder, dictionaries);
+      for (const dict of result.imported) addDictionary(dict);
+      await saveCustomDictionaries(envConfig, { publishOrderChange: result.imported.length > 0 });
+      if (result.imported.length > 0) {
         eventDispatcher.dispatch('toast', {
           type: 'info',
-          message: _('Imported {{count}} dictionary', { count: added }),
-          timeout: 2500,
+          message: _('Loaded {{count}} dictionary from folder', { count: result.imported.length }),
+          timeout: 3000,
         });
-      }
-      if (replaced > 0) {
+      } else if (result.orphanFiles.length === 0) {
         eventDispatcher.dispatch('toast', {
           type: 'info',
-          message: _('Replaced {{count}} existing dictionary', { count: replaced }),
-          timeout: 2500,
+          message: _('No new dictionaries found in the selected folder'),
+          timeout: 3000,
         });
       }
-      // Bundles that landed in the library but are marked unsupported (e.g.
-      // record-block-encrypted MDX, raw .dict without DictZip). They show
-      // disabled in the list — surface the first reason so the user knows
-      // their "imported" toast doesn't mean it's usable.
-      const unsupportedDicts = [
-        ...importResult.imported,
-        ...importResult.replacements.map((r) => r.newDict),
-      ].filter((d) => d.unsupported);
-      if (unsupportedDicts.length > 0) {
-        const firstReason = unsupportedDicts.find((d) => d.unsupportedReason)?.unsupportedReason;
+      if (result.orphanFiles.length > 0) {
         eventDispatcher.dispatch('toast', {
           type: 'warning',
-          message: firstReason
-            ? _('Unsupported dictionary: {{reason}}', { reason: firstReason })
-            : _('{{count}} dictionary is unsupported and disabled', {
-                count: unsupportedDicts.length,
-              }),
+          message: _('Skipped incomplete dictionary bundles: {{names}}', {
+            names: result.orphanFiles.join(', '),
+          }),
           timeout: 5000,
-        });
-      }
-      if (importResult.orphanFiles.length > 0) {
-        eventDispatcher.dispatch('toast', {
-          type: 'warning',
-          message: _('Skipped incomplete bundles: {{names}}', {
-            names: importResult.orphanFiles.join(', '),
-          }),
-          timeout: 4000,
-        });
-      }
-      for (const error of importResult.importErrors ?? []) {
-        eventDispatcher.dispatch('toast', {
-          type: 'error',
-          message: _('Failed to import dictionary: {{message}}', {
-            message: `${error.name}: ${error.message}`,
-          }),
-          timeout: 4000,
-        });
-      }
-      if (
-        added === 0 &&
-        replaced === 0 &&
-        importResult.orphanFiles.length === 0 &&
-        !importResult.importErrors?.length
-      ) {
-        eventDispatcher.dispatch('toast', {
-          type: 'info',
-          message: _('No new dictionaries were imported'),
-          timeout: 2500,
         });
       }
     } catch (err) {
       eventDispatcher.dispatch('toast', {
         type: 'error',
-        message: _('Failed to import dictionary: {{message}}', {
+        message: _('Failed to load dictionary folder: {{message}}', {
           message: err instanceof Error ? err.message : String(err),
         }),
-        timeout: 4000,
+        timeout: 5000,
       });
     } finally {
       setImporting(false);
@@ -837,7 +768,7 @@ const CustomDictionaries: React.FC<CustomDictionariesProps> = ({ onBack }) => {
       <div className='mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2'>
         <button
           type='button'
-          onClick={handleImport}
+          onClick={handleLoadFolder}
           disabled={importing}
           className={clsx(
             'eink-bordered group flex h-11 items-center justify-center gap-2.5',
@@ -876,7 +807,7 @@ const CustomDictionaries: React.FC<CustomDictionariesProps> = ({ onBack }) => {
                 _('Importing…')
               )
             ) : (
-              _('Import Dictionary')
+              _('Choose Dictionary Folder')
             )}
           </span>
         </button>

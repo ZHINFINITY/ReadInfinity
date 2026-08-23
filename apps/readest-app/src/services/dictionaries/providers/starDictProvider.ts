@@ -19,7 +19,11 @@
  * flagged `unsupported` at import time and filtered out before this
  * provider is instantiated.
  */
-import type { DictionaryProvider, ImportedDictionary } from '../types';
+import {
+  getDictionaryFileLocation,
+  type DictionaryProvider,
+  type ImportedDictionary,
+} from '../types';
 import type { BaseDir } from '@/types/system';
 import { StarDictReader, type StarDictEntry } from '../stardictReader';
 
@@ -106,24 +110,18 @@ export const createStarDictProvider = ({
         // Open every bundle file in parallel. Sidecars are optional —
         // older imports won't have them; the reader falls back to
         // scanning the source file when they're missing.
+        const open = (filename: string) => {
+          const location = getDictionaryFileLocation(dict, filename);
+          return fs.openFile(location.path, location.base);
+        };
         const [ifoFile, idxFile, dictFile, synFile, idxOffsetsFile, synOffsetsFile] =
           await Promise.all([
-            fs.openFile(`${dict.bundleDir}/${dict.files.ifo}`, 'Dictionaries'),
-            fs.openFile(`${dict.bundleDir}/${dict.files.idx}`, 'Dictionaries'),
-            fs.openFile(`${dict.bundleDir}/${dict.files.dict}`, 'Dictionaries'),
-            dict.files.syn
-              ? fs.openFile(`${dict.bundleDir}/${dict.files.syn}`, 'Dictionaries')
-              : Promise.resolve(undefined),
-            dict.files.idxOffsets
-              ? fs
-                  .openFile(`${dict.bundleDir}/${dict.files.idxOffsets}`, 'Dictionaries')
-                  .catch(() => undefined)
-              : Promise.resolve(undefined),
-            dict.files.synOffsets
-              ? fs
-                  .openFile(`${dict.bundleDir}/${dict.files.synOffsets}`, 'Dictionaries')
-                  .catch(() => undefined)
-              : Promise.resolve(undefined),
+            open(dict.files.ifo!),
+            open(dict.files.idx!),
+            open(dict.files.dict!),
+            dict.files.syn ? open(dict.files.syn) : Promise.resolve(undefined),
+            dict.files.idxOffsets ? open(dict.files.idxOffsets).catch(() => undefined) : Promise.resolve(undefined),
+            dict.files.synOffsets ? open(dict.files.synOffsets).catch(() => undefined) : Promise.resolve(undefined),
           ]);
 
         const r = new StarDictReader();

@@ -7,6 +7,8 @@
  * order; each provider writes lookup output into a per-tab container.
  */
 
+import type { BaseDir } from '@/types/system';
+
 export type DictionaryProviderKind =
   | 'builtin'
   | 'stardict'
@@ -89,9 +91,15 @@ export interface ImportedDictionary {
    * entry as live.
    */
   reincarnation?: string;
-  /** Subdirectory under `'Dictionaries'` containing this bundle's files. */
+  /** App-managed subdirectory under `'Dictionaries'` containing this bundle's files. */
   bundleDir: string;
-  /** Filenames inside `bundleDir`. The exact set varies by `kind`. */
+  /**
+   * Absolute folder selected by the user for a direct, device-local dictionary.
+   * When present, `files` are relative to this folder and no dictionary bytes
+   * are copied into app storage.
+   */
+  externalRoot?: string;
+  /** Filenames inside `bundleDir` or `externalRoot`. The exact set varies by `kind`. */
   files: {
     // StarDict bundle.
     ifo?: string;
@@ -183,6 +191,15 @@ export interface WebSearchEntry {
   /** Soft-delete marker; only set on user-added entries. */
   deletedAt?: number;
 }
+
+export const getDictionaryFileLocation = (
+  dict: Pick<ImportedDictionary, 'bundleDir' | 'externalRoot'>,
+  filename: string,
+): { path: string; base: BaseDir } => {
+  const root = dict.externalRoot ?? dict.bundleDir;
+  const base: BaseDir = dict.externalRoot ? 'None' : 'Dictionaries';
+  return { path: `${root.replace(/[\\/]$/, '')}/${filename}`, base };
+};
 
 export interface DictionarySettings {
   /** Provider id order shown in the popup tab strip. Includes builtin ids. */
