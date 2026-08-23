@@ -1128,8 +1128,7 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
     [scanDeviceStorage],
   );
 
-  // Queue downloads
- (the TransferQueuePanel path) report progress into the
+  // Queue downloads (the TransferQueuePanel path) report progress into the
   // transfer store instead of through this hook. Bookshelf reads them straight
   // from the store via `selectActiveBookDownloadProgress` and merges them with
   // this state, so `booksTransferProgress` keeps a single writer.
