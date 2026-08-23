@@ -75,6 +75,9 @@ jobs:
       - name: Prepare local reader vendors
         run: pnpm --filter @readest/readest-app setup-vendors
 
+      - name: Initialize Android project
+        run: pnpm --filter @readest/readest-app tauri android init
+
       - name: Build Android debug APK
         run: pnpm --filter @readest/readest-app tauri android build --debug -t aarch64 -- --features devtools
 
