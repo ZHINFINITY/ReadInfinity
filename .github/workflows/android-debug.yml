@@ -88,7 +88,7 @@ jobs:
           activity_file="$(find apps/readest-app/src-tauri/gen/android/app/src/main/java -name MainActivity.kt -print -quit)"
           test -n "$activity_file"
           if ! grep -q 'NativeBridgePlugin.deliverActivityResult' "$activity_file"; then
-            sed -i '/^import android.content.Intent$/a import com.readest.native_bridge.NativeBridgePlugin' "$activity_file"
+            sed -i '/^package /a import android.content.Intent\nimport com.readest.native_bridge.NativeBridgePlugin' "$activity_file"
             last_line="$(awk 'NF { line = NR } END { print line }' "$activity_file")"
             sed -i "${last_line}d" "$activity_file"
             cat >> "$activity_file" <<'KOTLIN'
