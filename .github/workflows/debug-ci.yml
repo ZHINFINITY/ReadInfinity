@@ -1,0 +1,115 @@
+name: ReadInfinity Debug CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: debug-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: TypeScript, formatting, and focused tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out source and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Restore workspace source dependencies
+        run: |
+          git clone --depth 1 https://github.com/readest/foliate-js.git packages/foliate-js
+          git clone --depth 1 https://github.com/readest/simplecc-wasm.git packages/simplecc-wasm
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check whitespace
+        run: git diff --check
+
+      - name: Check offline-build source formatting
+        run: >-
+          pnpm exec biome check
+          apps/readest-app/src/context/AuthContext.tsx
+          apps/readest-app/src/context/EnvContext.tsx
+          apps/readest-app/src/components/Providers.tsx
+          apps/readest-app/src/components/settings/SettingsDialog.tsx
+          apps/readest-app/src/app/library/page.tsx
+          apps/readest-app/src/app/library/components/SettingsMenu.tsx
+          apps/readest-app/src/app/library/components/ImportMenu.tsx
+          apps/readest-app/src/app/library/components/LibraryHeader.tsx
+          apps/readest-app/src/app/library/hooks/useOpenBook.ts
+          apps/readest-app/src/app/library/hooks/useBookTransferActions.ts
+          apps/readest-app/src/services/ingestService.ts
+          apps/readest-app/src/__tests__/services/ingest-service.test.ts
+
+      - name: Type-check the app
+        run: pnpm --filter @readest/readest-app exec tsc --noEmit -p tsconfig.json
+
+      - name: Run the ingestion regression tests
+        run: pnpm --filter @readest/readest-app exec vitest run src/__tests__/services/ingest-service.test.ts
+
+  debug-build:
+    name: Build offline debug bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    needs: checks
+    steps:
+      - name: Check out source and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Restore workspace source dependencies
+        run: |
+          git clone --depth 1 https://github.com/readest/foliate-js.git packages/foliate-js
+          git clone --depth 1 https://github.com/readest/simplecc-wasm.git packages/simplecc-wasm
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build static offline debug bundle
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: pnpm --filter @readest/readest-app build
+
+      - name: Upload debug bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: readinfinity-debug-${{ github.sha }}
+          path: apps/readest-app/out
+          if-no-files-found: error
+          retention-days: 7
