@@ -301,6 +301,7 @@ function localPathFromAndroidTreeUri(uri?: string): string | undefined {
   if (!uri?.startsWith(prefix)) return undefined;
   try {
     const encodedDocId = uri.slice(prefix.length).split('/')[0];
+    if (!encodedDocId) return undefined;
     const docId = decodeURIComponent(encodedDocId);
     const separator = docId.indexOf(':');
     const volume = separator >= 0 ? docId.slice(0, separator) : docId;
