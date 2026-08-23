@@ -141,7 +141,7 @@ jobs:
 
       - name: Build signed arm64-v8a release APK
         working-directory: apps/readest-app
-        run: pnpm tauri android build --release -t aarch64
+        run: pnpm tauri android build -t aarch64
 
       - name: Verify package, branding, signature, and ABI
         id: apk
