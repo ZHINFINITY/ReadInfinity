@@ -133,7 +133,6 @@ interface BookshelfItemProps {
     book: Book,
     options?: { redownload?: boolean; queued?: boolean },
   ) => Promise<boolean>;
-  handleBookUpload: (book: Book, syncBooks?: boolean) => Promise<boolean>;
   handleBookDelete: (book: Book, syncBooks?: boolean) => Promise<boolean>;
   handleSetSelectMode: (selectMode: boolean) => void;
   handleShowDetailsBook: (book: Book) => void;
@@ -152,7 +151,6 @@ const BookshelfItem: React.FC<BookshelfItemProps> = ({
   setLoading,
   toggleSelection,
   handleGroupBooks,
-  handleBookUpload,
   handleBookDownload,
   handleSetSelectMode,
   handleShowDetailsBook,
@@ -260,18 +258,6 @@ const BookshelfItem: React.FC<BookshelfItemProps> = ({
         text: _('Search on Goodreads'),
         action: async () => {
           openExternalUrl(getGoodreadsSearchUrl(getBookGoodreadsQuery(book)));
-        },
-      },
-      download: {
-        text: _('Download Book'),
-        action: async () => {
-          handleBookDownload(book, { queued: true });
-        },
-      },
-      upload: {
-        text: _('Upload Book'),
-        action: async () => {
-          handleBookUpload(book);
         },
       },
       share: {
@@ -498,8 +484,6 @@ const BookshelfItem: React.FC<BookshelfItemProps> = ({
               isSelectMode={isSelectMode}
               bookSelected={itemSelected}
               transferProgress={transferProgress}
-              handleBookUpload={handleBookUpload}
-              handleBookDownload={handleBookDownload}
               showBookDetailsModal={showBookDetailsModal}
               showTimeRemaining={showTimeRemaining}
             />

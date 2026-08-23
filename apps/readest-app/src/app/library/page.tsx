@@ -50,7 +50,6 @@ import { useUICSS } from '@/hooks/useUICSS';
 import { useDemoBooks } from './hooks/useDemoBooks';
 import { useBookTransferActions } from './hooks/useBookTransferActions';
 import { useAutoImportFolders } from './hooks/useAutoImportFolders';
-import { useWindowActiveChanged } from '@/app/reader/hooks/useWindowActiveChanged';
 import { useBookDataStore } from '@/store/bookDataStore';
 import { useBackgroundTexture } from '@/hooks/useBackgroundTexture';
 import { getLibraryViewSettings } from '@/helpers/settings';
@@ -94,6 +93,7 @@ import ImportMenuPopup from './components/ImportMenuPopup';
 import GroupHeader from './components/GroupHeader';
 import FailedImportsDialog, { FailedImport } from './components/FailedImportsDialog';
 import ImportFromFolderDialog, {
+  DEFAULT_FORMAT_GROUPS,
   ImportFromFolderResult,
 } from './components/ImportFromFolderDialog';
 import NowPlayingBar from './components/NowPlayingBar';
@@ -281,10 +281,8 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
   // whole state file on the main thread, so grant once, not on every focus
   // scan (issue #5494).
   const autoImportGrantedFoldersRef = useRef<Set<string>>(new Set());
-  // Prevent duplicate full-storage scans during React remounts or library
-  // navigation within the same app session. A separate in-flight guard allows
-  // the permission screen to be retried safely when Android resumes the app.
-  const deviceStorageScanStartedRef = useRef(false);
+  // Prevent overlapping manual scans. Android discovery is deliberately
+  // user-triggered: it never scans the whole device on launch or on focus.
   const deviceStorageScanInFlightRef = useRef(false);
   const getScrollKey = (group: string) => `library-scroll-${group || 'all'}`;
 
@@ -805,7 +803,7 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
   const importBooks = (
     files: SelectedFile[],
     groupId?: string,
-    options: { silent?: boolean } = {},
+    options: { silent?: boolean; directScan?: boolean } = {},
   ): Promise<{ failedPaths: string[] }> =>
     // Whole runs are serialized (see enqueueImportRun); the lookup index is
     // built inside the run so a queued run sees everything the previous one
@@ -815,7 +813,7 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
   const importBooksRun = async (
     files: SelectedFile[],
     groupId?: string,
-    options: { silent?: boolean } = {},
+    options: { silent?: boolean; directScan?: boolean } = {},
   ): Promise<{ failedPaths: string[] }> => {
     setLoading(true);
     const { library } = useLibraryStore.getState();
@@ -934,21 +932,25 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
       const { filename, errorMessage } = failedImports[0]!;
       eventDispatcher.dispatch('toast', {
         message:
-          _('Failed to import book(s): {{filenames}}', {
-            filenames: listFormater(false).format([filename]),
-          }) + (errorMessage ? `\n${errorMessage}` : ''),
+          (options.directScan
+            ? _('Failed to open book(s): {{filenames}}', {
+                filenames: listFormater(false).format([filename]),
+              })
+            : _('Failed to import book(s): {{filenames}}', {
+                filenames: listFormater(false).format([filename]),
+              })) + (errorMessage ? `\n${errorMessage}` : ''),
         timeout: 5000,
         type: 'error',
       });
     }
-    // Surface the success toast when books were imported. In silent (auto-import)
-    // mode failures are suppressed, so show success independently of them; in
-    // interactive mode keep the original behaviour (only when nothing failed).
-    if (successfulImports.length > 0 && (options.silent || failedImports.length === 0)) {
+    // Interactive file adds keep the original success toast. Silent folder
+    // scans report their result from scanDeviceStorage instead, avoiding the
+    // misleading import vocabulary and duplicate notifications.
+    if (successfulImports.length > 0 && !options.silent && failedImports.length === 0) {
       eventDispatcher.dispatch('toast', {
-        message: _('Successfully imported {{count}} book(s)', {
-          count: successfulImports.length,
-        }),
+        message: options.directScan
+          ? _('Added {{count}} books from device folders', { count: successfulImports.length })
+          : _('Successfully imported {{count}} book(s)', { count: successfulImports.length }),
         timeout: 2000,
         type: 'success',
       });
@@ -965,8 +967,13 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
    * toast), and `importBooks` runs only when genuinely-new files exist (its
    * success toast then fires).
    */
-  const autoImportFromWatchedFolders = async (folders: string[]) => {
+  const autoImportFromWatchedFolders = async (
+    folders: string[],
+    options: { extensions?: string[]; minSizeBytes?: number } = {},
+  ) => {
     if (!appService || loading) return 0;
+    const extensions = options.extensions ?? SUPPORTED_BOOK_EXTS;
+    const minSizeBytes = options.minSizeBytes ?? AUTO_IMPORT_MIN_SIZE_BYTES;
     const { library } = useLibraryStore.getState();
     const osPlatform = appService.osPlatform;
     // Known local source paths — live AND soft-deleted (files the user deleted
@@ -982,14 +989,14 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
           await appService.allowPathsInScopes?.([folder], true);
           autoImportGrantedFoldersRef.current.add(folder);
         }
-        const items = await appService.readDirectory(folder, 'None', SUPPORTED_BOOK_EXTS);
+        const items = await appService.readDirectory(folder, 'None', extensions);
         const entries = items.map((item) => ({
           fullPath: joinScannedPath(folder, item.path),
           size: item.size,
         }));
         const fresh = selectNewImportableFiles(entries, {
-          extensions: SUPPORTED_BOOK_EXTS,
-          minSizeBytes: AUTO_IMPORT_MIN_SIZE_BYTES,
+          extensions,
+          minSizeBytes,
           existingPaths,
           osPlatform,
         });
@@ -1012,7 +1019,10 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
       }
     }
     if (newFiles.length > 0) {
-      const { failedPaths } = await importBooks(newFiles, undefined, { silent: true });
+      const { failedPaths } = await importBooks(newFiles, undefined, {
+        silent: true,
+        directScan: true,
+      });
       for (const p of failedPaths) {
         const key = normalizeFilePathForIndex(p, osPlatform);
         if (key) autoImportFailedPathsRef.current.add(key);
@@ -1021,33 +1031,31 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
     return newFiles.length;
   };
 
-  // Local-folder counterpart of useLibraryFileSync: re-scan the folders the
-  // user opted into auto-import (a subset of externalLibraryFolders, chosen
-  // per-folder in the Import-from-Folder dialog) and import newly-added books
-  // on library open and app focus. Desktop + Android only (iOS security-scoped
-  // bookmarks are out of scope).
+  // Local-folder counterpart of useLibraryFileSync: desktop keeps its legacy
+  // focus-triggered watched-folder behavior. Android uses the same persisted
+  // folder list, but scans only from the explicit Scan Books action below so a
+  // first launch never walks the entire device.
   useAutoImportFolders({
     enabled:
       (settings.autoImportFolders?.length ?? 0) > 0 &&
       libraryLoaded &&
       isTauriAppPlatform() &&
-      !appService?.isIOSApp,
+      !appService?.isIOSApp &&
+      !appService?.isAndroidApp,
     folders: settings.autoImportFolders ?? [],
     scanAndImport: async (folders) => {
       await autoImportFromWatchedFolders(folders);
     },
   });
 
-  // ReadInfinity is local-first: on Android, request the existing native
-  // storage permission once and scan shared internal storage automatically.
-  // The native read_dir command is recursive and returns only supported book
-  // extensions, while importBooks deduplicates against existing source paths.
-  const scanDeviceStorage = useCallback(async () => {
+  // ReadInfinity is local-first: Android scans only folders the user selected.
+  // The native read_dir command is recursive, while importBooks deduplicates
+  // against existing source paths without copying an in-place source book.
+  const scanDeviceStorage = useCallback(async (requestedFolders?: string[]) => {
     if (
       !libraryLoaded ||
       loading ||
       !appService?.isAndroidApp ||
-      deviceStorageScanStartedRef.current ||
       deviceStorageScanInFlightRef.current
     ) {
       return;
@@ -1068,43 +1076,60 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
         });
         return;
       }
-      const configuredBooksFolder =
-        typeof window !== 'undefined'
-          ? window.localStorage.getItem(LAST_IMPORT_FOLDER_KEY)?.trim()
-          : undefined;
-      const booksFolder = configuredBooksFolder || '/storage/emulated/0';
-      const foundCount = await autoImportFromWatchedFolders([booksFolder]);
-      deviceStorageScanStartedRef.current = true;
+      const booksFolders = requestedFolders ?? settings.autoImportFolders ?? [];
+      if (booksFolders.length === 0) {
+        eventDispatcher.dispatch('toast', {
+          type: 'info',
+          timeout: 5000,
+          message: _('Choose one or more books folders before scanning.'),
+        });
+        return;
+      }
+      const ls = typeof window !== 'undefined' ? window.localStorage : null;
+      const selectedGroupIds = (ls?.getItem(LAST_IMPORT_FOLDER_FORMATS_KEY) || '')
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean);
+      const extensions = DEFAULT_FORMAT_GROUPS.filter((group) =>
+        selectedGroupIds.length > 0
+          ? selectedGroupIds.includes(group.id)
+          : group.id === 'epub' || group.id === 'pdf',
+      ).flatMap((group) => group.exts);
+      const storedMinSize = Number.parseInt(
+        ls?.getItem(LAST_IMPORT_FOLDER_MIN_SIZE_KEY) || String(DEFAULT_MIN_SIZE_KB),
+        10,
+      );
+      const minSizeBytes =
+        (Number.isFinite(storedMinSize) && storedMinSize >= 0 ? storedMinSize : DEFAULT_MIN_SIZE_KB) *
+        1024;
+      const foundCount = await autoImportFromWatchedFolders(booksFolders, {
+        extensions,
+        minSizeBytes,
+      });
       eventDispatcher.dispatch('toast', {
         type: 'info',
         timeout: 4000,
         message:
           foundCount > 0
-            ? _('Found {{count}} new books in the selected folder.', { count: foundCount })
-            : _('No new books found in the selected folder.'),
+            ? _('Found {{count}} new books in the selected folders.', { count: foundCount })
+            : _('No new books found in the selected folders.'),
       });
     } catch (error) {
       // Permission denial or an unavailable storage provider should not block
-      // the library. Because completion remains false, a later app-resume can
-      // retry after the user grants Android All Files Access.
+      // the library. The user can press Scan Books again after fixing access.
       console.warn('Automatic device-storage scan unavailable:', error);
     } finally {
       deviceStorageScanInFlightRef.current = false;
     }
-  }, [_, appService, autoImportFromWatchedFolders, libraryLoaded, loading]);
+  }, [_, appService, autoImportFromWatchedFolders, libraryLoaded, loading, settings.autoImportFolders]);
 
-  useEffect(() => {
-    void scanDeviceStorage();
-  }, [scanDeviceStorage]);
+  const scanEntireDeviceStorage = useCallback(
+    () => void scanDeviceStorage(['/storage/emulated/0']),
+    [scanDeviceStorage],
+  );
 
-  // Android returns here after the user grants All Files Access in Settings.
-  // Retry on visibility/focus so the first denied response from the native
-  // permission command cannot permanently suppress discovery.
-  useWindowActiveChanged((isActive) => {
-    if (isActive) void scanDeviceStorage();
-  });
-
-  // Queue downloads (the TransferQueuePanel path) report progress into the
+  // Queue downloads
+ (the TransferQueuePanel path) report progress into the
   // transfer store instead of through this hook. Bookshelf reads them straight
   // from the store via `selectActiveBookDownloadProgress` and merges them with
   // this state, so `booksTransferProgress` keeps a single writer.
@@ -1318,9 +1343,10 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
         ? Number.parseInt(storedMinSize, 10)
         : undefined;
     setImportFromFolderState({
-      // Android’s shared-storage root is the default discovery location;
-      // users should not need to choose a folder before local books can be read.
-      initialDirectory: storedDirectory || (appService.isAndroidApp ? '/storage/emulated/0' : ''),
+      // Android discovery is deliberately scoped to folders the user chooses;
+      // the entire shared-storage root is still available if the user selects it
+      // explicitly, but it is never scanned by default.
+      initialDirectory: storedDirectory || '',
       initialFolderMode: storedMode === 'flatten' ? 'flatten' : 'keep',
       initialSelectedGroupIds: parsedFormats,
       initialMinSizeKB:
@@ -1701,7 +1727,10 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
     // preserving structure we leave groupId undefined so importBooks
     // derives nested groupNames from each file's basePath.
     const targetGroupId = result.flatten ? searchParams?.get('group') || '' : undefined;
-    importBooks(toImportFiles, targetGroupId);
+    importBooks(toImportFiles, targetGroupId, {
+      silent: appService.isAndroidApp,
+      directScan: appService.isAndroidApp,
+    });
   };
 
   const handleSetSelectMode = (selectMode: boolean) => {
@@ -1833,6 +1862,8 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
           isSelectMode={isSelectMode}
           isSelectAll={isSelectAll}
           onPullLibrary={pullLibrary}
+          onScanBooks={() => void scanDeviceStorage()}
+          onScanAllBooks={scanEntireDeviceStorage}
           onImportBooksFromFiles={handleImportBooksFromFiles}
           onImportBooksFromDirectory={
             appService?.canReadExternalDir ? handleImportBooksFromDirectory : undefined
@@ -1965,7 +1996,6 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
                 isSelectNone={isSelectNone}
                 onScrollerRef={handleScrollerRef}
                 handleImportBooks={setImportMenuAnchor}
-                handleBookUpload={handleBookUpload}
                 handleBookDownload={handleBookDownload}
                 handleBookDelete={handleBookDelete('both')}
                 handleBookPurge={handleBookDelete('purge')}

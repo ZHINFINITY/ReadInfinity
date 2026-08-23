@@ -24,8 +24,6 @@ interface RecentShelfProps {
   onOpenBook: (book: Book) => void;
   toggleSelection: (hash: string) => void;
   handleSetSelectMode: (selectMode: boolean) => void;
-  handleBookUpload: (book: Book) => void;
-  handleBookDownload: (book: Book, options?: { redownload?: boolean; queued?: boolean }) => void;
   showBookDetailsModal: (book: Book) => void;
   showTimeRemaining: boolean;
   /**
@@ -53,8 +51,6 @@ type RecentSlideProps = Pick<
   | 'onOpenBook'
   | 'toggleSelection'
   | 'handleSetSelectMode'
-  | 'handleBookUpload'
-  | 'handleBookDownload'
   | 'showBookDetailsModal'
   | 'showTimeRemaining'
 > & { book: Book; bookSelected: boolean; transferProgress: number | null };
@@ -67,8 +63,6 @@ const RecentSlide: React.FC<RecentSlideProps> = ({
   onOpenBook,
   toggleSelection,
   handleSetSelectMode,
-  handleBookUpload,
-  handleBookDownload,
   showBookDetailsModal,
   showTimeRemaining,
   transferProgress,
@@ -129,8 +123,6 @@ const RecentSlide: React.FC<RecentSlideProps> = ({
             isSelectMode={isSelectMode}
             bookSelected={bookSelected}
             transferProgress={transferProgress}
-            handleBookUpload={handleBookUpload}
-            handleBookDownload={handleBookDownload}
             showBookDetailsModal={showBookDetailsModal}
             showTimeRemaining={showTimeRemaining}
           />
@@ -157,8 +149,6 @@ const RecentShelf: React.FC<RecentShelfProps> = ({
   onOpenBook,
   toggleSelection,
   handleSetSelectMode,
-  handleBookUpload,
-  handleBookDownload,
   showBookDetailsModal,
   showTimeRemaining,
   transferProgress,
@@ -247,8 +237,6 @@ const RecentShelf: React.FC<RecentShelfProps> = ({
                 onOpenBook={onOpenBook}
                 toggleSelection={toggleSelection}
                 handleSetSelectMode={handleSetSelectMode}
-                handleBookUpload={handleBookUpload}
-                handleBookDownload={handleBookDownload}
                 showBookDetailsModal={showBookDetailsModal}
                 showTimeRemaining={showTimeRemaining}
                 transferProgress={transferProgress[book.hash] ?? null}

@@ -31,10 +31,17 @@ import { type AppLockDialogMode, useAppLockStore } from '@/store/appLockStore';
 
 interface SettingsMenuProps {
   onPullLibrary: (fullRefresh?: boolean, verbose?: boolean) => void;
+  onScanBooks?: () => void;
+  onScanAllBooks?: () => void;
   setIsDropdownOpen?: (isOpen: boolean) => void;
 }
 
-const SettingsMenu: React.FC<SettingsMenuProps> = ({ onPullLibrary, setIsDropdownOpen }) => {
+const SettingsMenu: React.FC<SettingsMenuProps> = ({
+  onPullLibrary,
+  onScanBooks,
+  onScanAllBooks,
+  setIsDropdownOpen,
+}) => {
   const _ = useTranslation();
   const { envConfig, appService } = useEnv();
   const { themeMode, setThemeMode } = useThemeStore();
@@ -215,7 +222,25 @@ const SettingsMenu: React.FC<SettingsMenuProps> = ({ onPullLibrary, setIsDropdow
       )}
       onCancel={() => setIsDropdownOpen?.(false)}
     >
-      {isTauriAppPlatform() && (
+      {appService?.isAndroidApp && onScanBooks && (
+        <MenuItem
+          label={_('Scan Selected Books Folders')}
+          onClick={() => {
+            onScanBooks();
+            setIsDropdownOpen?.(false);
+          }}
+        />
+      )}
+      {appService?.isAndroidApp && onScanAllBooks && (
+        <MenuItem
+          label={_('Scan Entire Device Once')}
+          onClick={() => {
+            onScanAllBooks();
+            setIsDropdownOpen?.(false);
+          }}
+        />
+      )}
+      {isTauriAppPlatform() && !appService?.isAndroidApp && (
         <MenuItem
           label={_('Auto Import on File Open')}
           toggled={isAutoImportBooksOnOpen}

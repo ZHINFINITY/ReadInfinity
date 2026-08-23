@@ -89,7 +89,6 @@ interface BookshelfProps {
     book: Book,
     options?: { redownload?: boolean; queued?: boolean; silent?: boolean },
   ) => Promise<boolean>;
-  handleBookUpload: (book: Book, syncBooks?: boolean) => Promise<boolean>;
   handleBookDelete: (book: Book, syncBooks?: boolean) => Promise<boolean>;
   handleBookPurge: (book: Book, syncBooks?: boolean) => Promise<boolean>;
   handleSetSelectMode: (selectMode: boolean) => void;
@@ -191,7 +190,6 @@ const Bookshelf: React.FC<BookshelfProps> = ({
   isSelectNone,
   onScrollerRef,
   handleImportBooks,
-  handleBookUpload,
   handleBookDownload,
   handleBookDelete,
   handleBookPurge,
@@ -865,8 +863,6 @@ const Bookshelf: React.FC<BookshelfProps> = ({
           onOpenBook={openRecentBook}
           toggleSelection={toggleSelection}
           handleSetSelectMode={handleSetSelectMode}
-          handleBookUpload={handleBookUpload}
-          handleBookDownload={handleBookDownload}
           showBookDetailsModal={handleShowDetailsBook}
           showTimeRemaining={showTimeRemaining}
           transferProgress={transferProgress}
@@ -884,8 +880,6 @@ const Bookshelf: React.FC<BookshelfProps> = ({
       openRecentBook,
       toggleSelection,
       handleSetSelectMode,
-      handleBookUpload,
-      handleBookDownload,
       handleShowDetailsBook,
       showTimeRemaining,
     ],
@@ -960,7 +954,6 @@ const Bookshelf: React.FC<BookshelfProps> = ({
           setLoading={setLoading}
           toggleSelection={toggleSelection}
           handleGroupBooks={groupSelectedBooks}
-          handleBookUpload={handleBookUpload}
           handleBookDownload={handleBookDownload}
           handleBookDelete={handleBookDelete}
           handleSetSelectMode={handleSetSelectMode}
@@ -984,7 +977,6 @@ const Bookshelf: React.FC<BookshelfProps> = ({
       iconSize15,
       handleImportBooks,
       toggleSelection,
-      handleBookUpload,
       handleBookDownload,
       handleBookDelete,
       handleSetSelectMode,

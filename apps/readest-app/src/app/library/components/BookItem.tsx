@@ -2,23 +2,16 @@ import clsx from 'clsx';
 import { useEffect, useState } from 'react';
 import { MdCheckCircle, MdCheckCircleOutline } from 'react-icons/md';
 import {
-  LiaCloudUploadAltSolid,
-  LiaCloudDownloadAltSolid,
   LiaHeadphonesSolid,
   LiaInfoCircleSolid,
 } from 'react-icons/lia';
 
 import { Book } from '@/types/book';
 import { useEnv } from '@/context/EnvContext';
-import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useResponsiveSize } from '@/hooks/useResponsiveSize';
 import { LibraryCoverFitType, LibraryViewModeType } from '@/types/settings';
-import { navigateToLogin } from '@/utils/nav';
-import { isReadestCloudStorageActive } from '@/services/sync/cloudSyncProvider';
-import { isFeedBook } from '@/services/rss/feedBookUrl';
 import { isAudiobook } from '@/utils/audiobook';
 import { formatAuthors, formatDescription, formatSeries } from '@/utils/book';
 import { formatCompactTime } from '@/utils/time';
@@ -33,8 +26,6 @@ interface BookItemProps {
   isSelectMode: boolean;
   bookSelected: boolean;
   transferProgress: number | null;
-  handleBookUpload: (book: Book) => void;
-  handleBookDownload: (book: Book, options?: { redownload?: boolean; queued?: boolean }) => void;
   showBookDetailsModal: (book: Book) => void;
   showTimeRemaining: boolean;
 }
@@ -46,14 +37,10 @@ const BookItem: React.FC<BookItemProps> = ({
   isSelectMode,
   bookSelected,
   transferProgress,
-  handleBookUpload,
-  handleBookDownload,
   showBookDetailsModal,
   showTimeRemaining,
 }) => {
   const _ = useTranslation();
-  const router = useRouter();
-  const { user } = useAuth();
   const { appService } = useEnv();
   const { settings } = useSettingsStore();
   const iconSize15 = useResponsiveSize(15);
@@ -244,43 +231,6 @@ const BookItem: React.FC<BookItemProps> = ({
                 <LiaHeadphonesSolid size={iconSize15} />
               </div>
             )}
-            {isTransferring
-              ? // Progress is rendered as a cover overlay; keep the row's action
-                // buttons hidden while a transfer is active. Same condition as
-                // the overlay, so a book can never show neither.
-                null
-              : // A feed book has no file to move either way, so it never gets a
-                // cloud badge — it would only queue a transfer that fails (#5307).
-                // Same for an ABS book: it streams from the server and never has
-                // uploadedAt/downloadedAt set, so without this check the badge
-                // would render forever and Upload would always fail.
-                !isFeedBook(book) &&
-                !isAudiobook(book) &&
-                (!book.uploadedAt || (book.uploadedAt && !book.downloadedAt)) && (
-                  <button
-                    aria-label={!book.uploadedAt ? _('Upload Book') : _('Download Book')}
-                    className='show-cloud-button -m-2 p-2'
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={() => {
-                      if (!user) {
-                        navigateToLogin(router);
-                        return;
-                      }
-                      if (!book.uploadedAt) {
-                        handleBookUpload(book);
-                      } else if (!book.downloadedAt) {
-                        handleBookDownload(book, { queued: true });
-                      }
-                    }}
-                  >
-                    {!book.uploadedAt && isReadestCloudStorageActive(settings) && (
-                      <LiaCloudUploadAltSolid size={iconSize15} />
-                    )}
-                    {book.uploadedAt && !book.downloadedAt && (
-                      <LiaCloudDownloadAltSolid size={iconSize15} />
-                    )}
-                  </button>
-                )}
           </div>
         </div>
       </div>

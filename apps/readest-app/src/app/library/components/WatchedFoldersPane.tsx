@@ -21,14 +21,16 @@ export interface WatchedFolder {
 interface WatchedFoldersPaneProps {
   folders: WatchedFolder[];
   onBack: () => void;
-  /** Stop auto-importing from `path`. The folder stays readable in place. */
+  /** Remove `path` from the selected scan folders. */
   onUnwatch: (path: string) => void;
   onSetFlatten: (path: string, flatten: boolean) => void;
+  /** Open the native picker to add another scan folder. */
+  onAddFolder: () => void;
 }
 
 /**
- * Sub-page of the Import-from-Folder dialog listing every folder the user has
- * opted into auto-import, so a folder can be dropped or re-pointed without
+ * Sub-page of the folder dialog listing every folder the user selected for
+ * scanning, so a folder can be removed or reconfigured without
  * hunting down its path in the picker again — until this existed, unwatching
  * meant re-selecting the exact folder and unticking a checkbox.
  *
@@ -40,6 +42,7 @@ const WatchedFoldersPane: React.FC<WatchedFoldersPaneProps> = ({
   onBack,
   onUnwatch,
   onSetFlatten,
+  onAddFolder,
 }) => {
   const _ = useTranslation();
   const isRtl = getDirFromUILanguage() === 'rtl';
@@ -60,18 +63,24 @@ const WatchedFoldersPane: React.FC<WatchedFoldersPaneProps> = ({
           >
             <BackIcon className='h-4 w-4' />
           </button>
-          <span className='text-base font-semibold tracking-tight'>{_('Watched Folders')}</span>
+          <span className='text-base font-semibold tracking-tight'>{_('Books Folders')}</span>
         </div>
         <span className='text-base-content/65 text-[0.85em] leading-relaxed'>
-          {_(
-            'Readest re-scans these folders when it opens or returns to the foreground and imports any new books. Each folder keeps the structure it was imported with.',
-          )}
+          {_('These folders are scanned only when you choose Scan Books. Subfolders are included, and books stay at their original paths.')}
         </span>
       </div>
 
+      <button
+        type='button'
+        className='btn btn-primary btn-sm self-start'
+        onClick={onAddFolder}
+      >
+        {_('Add Another Folder')}
+      </button>
+
       {folders.length === 0 ? (
         <span className='text-base-content/65 py-4 text-center text-[0.85em]'>
-          {_('No folders are watched.')}
+          {_('No books folders selected.')}
         </span>
       ) : (
         <BoxedList>
@@ -96,8 +105,8 @@ const WatchedFoldersPane: React.FC<WatchedFoldersPaneProps> = ({
                 type='button'
                 onClick={() => onUnwatch(folder.path)}
                 className='btn btn-ghost btn-sm shrink-0 px-1'
-                aria-label={_('Stop watching')}
-                title={_('Stop watching')}
+                aria-label={_('Remove Folder')}
+                title={_('Remove Folder')}
               >
                 <IoMdCloseCircleOutline className='text-base-content/75 h-5 w-5' />
               </button>

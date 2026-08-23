@@ -27,6 +27,8 @@ interface LibraryHeaderProps {
   isSelectMode: boolean;
   isSelectAll: boolean;
   onPullLibrary: () => void;
+  onScanBooks?: () => void;
+  onScanAllBooks?: () => void;
   onImportBooksFromFiles: () => void;
   onImportBooksFromDirectory?: () => void;
   onImportBookFromUrl?: () => void;
@@ -48,6 +50,8 @@ const LibraryHeader: React.FC<LibraryHeaderProps> = ({
   isSelectMode,
   isSelectAll,
   onPullLibrary,
+  onScanBooks,
+  onScanAllBooks,
   onImportBooksFromFiles,
   onImportBooksFromDirectory,
   onImportBookFromUrl,
@@ -196,6 +200,17 @@ const LibraryHeader: React.FC<LibraryHeaderProps> = ({
             )}
             {searchTarget !== 'text' && (
               <>
+                {appService?.isAndroidApp && onScanBooks && (
+                  <button
+                    type='button'
+                    onClick={onScanBooks}
+                    aria-label={_('Scan Books')}
+                    title={_('Scan Books')}
+                    className='text-base-content/60 hover:text-base-content flex h-6 w-6 items-center justify-center'
+                  >
+                    <MdManageSearch className='h-5 w-5' />
+                  </button>
+                )}
                 <span className='bg-base-content/50 mx-2 h-4 w-[0.5px]'></span>
                 <Dropdown
                   label={_('Open Books')}
@@ -265,7 +280,11 @@ const LibraryHeader: React.FC<LibraryHeaderProps> = ({
               buttonClassName='btn btn-ghost h-8 min-h-8 w-8 p-0'
               toggleButton={<MdOutlineMenu role='none' size={iconSize18} />}
             >
-              <SettingsMenu onPullLibrary={onPullLibrary} />
+              <SettingsMenu
+                onPullLibrary={onPullLibrary}
+                onScanBooks={onScanBooks}
+                onScanAllBooks={onScanAllBooks}
+              />
             </Dropdown>
             {appService?.hasWindowBar && (
               <WindowButtons

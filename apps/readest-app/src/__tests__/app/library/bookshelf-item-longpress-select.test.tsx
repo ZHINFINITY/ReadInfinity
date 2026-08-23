@@ -89,7 +89,6 @@ const Harness = ({ onToggle }: { onToggle: (id: string) => void }) => {
       }}
       handleGroupBooks={vi.fn()}
       handleBookDownload={vi.fn(async () => true)}
-      handleBookUpload={vi.fn(async () => true)}
       handleBookDelete={vi.fn(async () => true)}
       handleSetSelectMode={setIsSelectMode}
       handleShowDetailsBook={vi.fn()}

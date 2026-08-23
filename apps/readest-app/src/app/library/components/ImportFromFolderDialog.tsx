@@ -234,7 +234,7 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
 
   const isRegisteredRoot = !!directory && (isRegisteredExternalRoot?.(directory) ?? false);
   const readInPlace = directOnly || readInPlaceChoice || isRegisteredRoot || initialReadInPlace;
-  const effectiveAutoImport = readInPlace && autoImport;
+  const effectiveAutoImport = readInPlace && (directOnly || autoImport);
 
   /** Same normalization the caller matches watched roots with. */
   const isCurrentDirectory = (path: string) => {
@@ -296,6 +296,22 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
     }
   };
 
+  const handleAddFolder = async () => {
+    if (picking) return;
+    setPicking(true);
+    try {
+      const picked = await onPickDirectory();
+      if (picked) {
+        setDirectory(picked);
+        setReadInPlaceChoice(null);
+        setAutoImport(true);
+        setView('import');
+      }
+    } finally {
+      setPicking(false);
+    }
+  };
+
   const handleConfirm = () => {
     if (!directory) return;
     const exts: string[] = [];
@@ -336,6 +352,7 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
         <WatchedFoldersPane
           folders={watchedFolders}
           onBack={() => setView('import')}
+          onAddFolder={handleAddFolder}
           onUnwatch={(path) => {
             // Keep the form honest: confirming right after unwatching the very
             // folder being imported would put it straight back on the list.
@@ -495,7 +512,7 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
           {/* Auto-import sub-option. Only shown when the folder is read in
               place — auto-import re-scans and reads books straight from the
               folder, so it has no meaning for copied imports. */}
-          {readInPlace && (
+          {readInPlace && !directOnly && (
             <label className='ms-6 flex cursor-pointer items-start gap-2 rounded-md px-1 py-1 text-sm hover:bg-base-200/50'>
               <input
                 type='checkbox'
@@ -506,9 +523,7 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
               <span className='select-none'>
                 <span className='block'>{_('Watch this folder for new books')}</span>
                 <span className='text-base-content/60 block text-xs'>
-                  {_(
-                    'When new books appear here, ReadInfinity finds them automatically when it opens or returns to the foreground.',
-                  )}
+                  {_('Scan this folder automatically when the library opens or returns to the foreground.')}
                 </span>
               </span>
             </label>
@@ -567,7 +582,7 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
         {watchedFolders.length > 0 && (
           <BoxedList>
             <NavigationRow
-              title={_('Watched Folders')}
+              title={_('Books Folders')}
               status={watchedFolders.map((f) => getFilename(f.path) || f.path).join(', ')}
               onClick={() => setView('watched')}
             />

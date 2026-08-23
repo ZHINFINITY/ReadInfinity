@@ -64,7 +64,6 @@ const baseProps = {
   coverFit: 'crop' as const,
   autoColumns: true,
   fixedColumns: 6,
-  handleBookUpload: noop,
   handleBookDownload: noop,
   showBookDetailsModal: noop,
   showTimeRemaining: false,

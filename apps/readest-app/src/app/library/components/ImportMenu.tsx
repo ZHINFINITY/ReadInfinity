@@ -49,7 +49,7 @@ const ImportMenu: React.FC<ImportMenuProps> = ({
       />
       {onImportBooksFromDirectory && (
         <MenuItem
-          label={_('Open Device Folder')}
+          label={_('Choose Books Folder')}
           Icon={<IoFileTray className='h-5 w-5' />}
           onClick={handleImportFromDirectory}
         />
