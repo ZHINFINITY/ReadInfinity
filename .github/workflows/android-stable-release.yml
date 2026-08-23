@@ -1,4 +1,4 @@
-name: Read∞ Stable Android arm64 Release
+name: Read∞ Stable Android ARM Release
 
 on:
   workflow_dispatch:
@@ -28,7 +28,7 @@ env:
 jobs:
   build-release:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -74,13 +74,13 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android
+          targets: aarch64-linux-android, armv7-linux-androideabi
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/readest-app/src-tauri -> target
-          key: android-arm64-release
+          key: android-arm-release
 
       - name: Install JavaScript dependencies
         run: pnpm install --frozen-lockfile
@@ -151,43 +151,80 @@ jobs:
           } > apps/readest-app/src-tauri/gen/android/keystore.properties
           chmod 600 apps/readest-app/src-tauri/gen/android/keystore.properties
 
-      - name: Build signed arm64-v8a release APK
+      - name: Build signed ARM APK variants
         working-directory: apps/readest-app
-        run: pnpm tauri android build -t aarch64
+        run: |
+          set -euo pipefail
+          output_dir="$RUNNER_TEMP/readinfinity-apks"
+          mkdir -p "$output_dir"
+          rm -rf src-tauri/gen/android/app/build
+          pnpm tauri android build -t aarch64 --apk
+          arm64_apk="$(find src-tauri/gen/android -type f -name 'app-universal-release.apk' -print -quit)"
+          test -n "$arm64_apk"
+          cp "$arm64_apk" "$output_dir/arm64-v8a.apk"
+          test -s "$output_dir/arm64-v8a.apk"
+          rm -rf src-tauri/gen/android/app/build
+          pnpm tauri android build -t armv7 --apk
+          armv7_apk="$(find src-tauri/gen/android -type f -name 'app-universal-release.apk' -print -quit)"
+          test -n "$armv7_apk"
+          cp "$armv7_apk" "$output_dir/armeabi-v7a.apk"
+          test -s "$output_dir/armeabi-v7a.apk"
+          ls -lh "$output_dir"
 
-      - name: Verify package, branding, signature, and ABI
+      - name: Verify package, branding, signature, and ARM ABIs
         id: apk
         working-directory: apps/readest-app
         run: |
           set -euo pipefail
-          apk_path="$(find src-tauri/gen/android -type f -name 'app-universal-release.apk' -print -quit)"
-          test -n "$apk_path"
+          output_dir="$RUNNER_TEMP/readinfinity-apks"
           build_tools="$ANDROID_HOME/build-tools/35.0.0"
-          badging="$($build_tools/aapt dump badging "$apk_path")"
-          printf '%s\n' "$badging"
-          grep -F "com.infinity.readz" <<< "$badging"
-          grep -F "Read∞" <<< "$badging"
-          "$build_tools/apksigner" verify --verbose "$apk_path"
-          unzip -l "$apk_path" | grep -q 'lib/arm64-v8a/'
-          if unzip -l "$apk_path" | grep -Eq 'lib/(armeabi-v7a|x86|x86_64)/'; then
-            echo 'Unexpected non-arm64 native library found in release APK'
-            exit 1
-          fi
           version="$(node -p "require('./package.json').version")"
-          release_asset="Read∞_${version}_arm64-v8a.apk"
-          cp "$apk_path" "$release_asset"
-          sha256sum "$release_asset" | tee "$release_asset.sha256"
-          echo "path=$release_asset" >> "$GITHUB_OUTPUT"
+          for abi in arm64-v8a armeabi-v7a; do
+            apk_path="$output_dir/$abi.apk"
+            test -s "$apk_path"
+            badging="$("$build_tools/aapt" dump badging "$apk_path")"
+            printf '%s\n' "--- $abi badging ---"
+            printf '%s\n' "$badging"
+            grep -F "com.infinity.readz" <<< "$badging"
+            grep -F "Read∞" <<< "$badging"
+            "$build_tools/apksigner" verify --verbose "$apk_path"
+            unzip -l "$apk_path" | grep -q "lib/$abi/"
+            if unzip -l "$apk_path" | grep -Eq 'lib/(x86|x86_64)/'; then
+              echo "Unexpected x86 library found in $abi APK"
+              exit 1
+            fi
+            if [ "$abi" = "arm64-v8a" ]; then
+              if unzip -l "$apk_path" | grep -q 'lib/armeabi-v7a/'; then
+                echo 'Unexpected armeabi-v7a library found in arm64-v8a APK'
+                exit 1
+              fi
+            else
+              if unzip -l "$apk_path" | grep -q 'lib/arm64-v8a/'; then
+                echo 'Unexpected arm64-v8a library found in armeabi-v7a APK'
+                exit 1
+              fi
+            fi
+            release_asset="Read∞_${version}_${abi}.apk"
+            cp "$apk_path" "$release_asset"
+            sha256sum "$release_asset" | tee "$release_asset.sha256"
+            if [ "$abi" = "arm64-v8a" ]; then
+              echo "arm64_asset=$release_asset" >> "$GITHUB_OUTPUT"
+            else
+              echo "armv7_asset=$release_asset" >> "$GITHUB_OUTPUT"
+            fi
+            echo "Verified signed $abi APK: $release_asset"
+          done
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "Verified signed arm64-v8a APK: $release_asset"
 
-      - name: Upload build artifact
+      - name: Upload ARM build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: readinfinity-android-arm64-v8a-release-${{ github.sha }}
+          name: readinfinity-android-arm-release-${{ github.sha }}
           path: |
-            apps/readest-app/${{ steps.apk.outputs.path }}
-            apps/readest-app/${{ steps.apk.outputs.path }}.sha256
+            apps/readest-app/${{ steps.apk.outputs.arm64_asset }}
+            apps/readest-app/${{ steps.apk.outputs.arm64_asset }}.sha256
+            apps/readest-app/${{ steps.apk.outputs.armv7_asset }}
+            apps/readest-app/${{ steps.apk.outputs.armv7_asset }}.sha256
           if-no-files-found: error
           retention-days: 90
 
@@ -198,46 +235,62 @@ jobs:
         working-directory: apps/readest-app
         run: |
           set -euo pipefail
-          release_title="Read∞ ${{ steps.apk.outputs.version }} — arm64-v8a"
+          release_title="Read∞ ${{ steps.apk.outputs.version }} — ARM variants"
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" "${{ steps.apk.outputs.path }}" "${{ steps.apk.outputs.path }}.sha256" --clobber
+            gh release upload "$RELEASE_TAG" \
+              "${{ steps.apk.outputs.arm64_asset }}" \
+              "${{ steps.apk.outputs.arm64_asset }}.sha256" \
+              "${{ steps.apk.outputs.armv7_asset }}" \
+              "${{ steps.apk.outputs.armv7_asset }}.sha256" \
+              --clobber
           else
-            gh release create "$RELEASE_TAG" "${{ steps.apk.outputs.path }}" "${{ steps.apk.outputs.path }}.sha256" \
+            gh release create "$RELEASE_TAG" \
+              "${{ steps.apk.outputs.arm64_asset }}" \
+              "${{ steps.apk.outputs.arm64_asset }}.sha256" \
+              "${{ steps.apk.outputs.armv7_asset }}" \
+              "${{ steps.apk.outputs.armv7_asset }}.sha256" \
               --title "$release_title" \
               --target "$GITHUB_SHA" \
-              --notes "Stable Read∞ Android release. Package: com.infinity.readz. Architecture: arm64-v8a only. Books and dictionaries are read directly from selected device folders; local metadata remains on-device."
+              --notes "Stable Read∞ Android release. Package: com.infinity.readz. Version: ${{ steps.apk.outputs.version }}. ARM variants included: arm64-v8a and armeabi-v7a. x86 and x86_64 are excluded. Books and dictionaries are read directly from selected device folders; local metadata remains on-device."
           fi
 
-      - name: Attest release APK
+      - name: Attest arm64-v8a APK
         uses: actions/attest-build-provenance@v2
         with:
-          subject-path: apps/readest-app/${{ steps.apk.outputs.path }}
+          subject-path: apps/readest-app/${{ steps.apk.outputs.arm64_asset }}
+
+      - name: Attest armeabi-v7a APK
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: apps/readest-app/${{ steps.apk.outputs.armv7_asset }}
 
       - name: Print release summary
         run: |
           echo "Release tag: ${{ inputs.release_tag }}"
-          echo "APK: Read∞_${{ steps.apk.outputs.version }}_arm64-v8a.apk"
+          echo "Version: ${{ steps.apk.outputs.version }}"
           echo "Package: com.infinity.readz"
           echo "Brand: Read∞"
-          echo "Architecture: arm64-v8a"
+          echo "ARM APKs: ${{ steps.apk.outputs.arm64_asset }}, ${{ steps.apk.outputs.armv7_asset }}"
+          echo "Architectures: arm64-v8a and armeabi-v7a"
+          echo "Excluded architectures: x86 and x86_64"
           echo "Commit: $GITHUB_SHA"
           echo "Public releases: https://github.com/ZHINFINITY/readinfinity/releases"
           echo "Artifact: https://github.com/ZHINFINITY/readinfinity/actions/runs/$GITHUB_RUN_ID"
-          echo "Artifact attestation: enabled"
-          echo "APK is signed with the configured release keystore."
-          echo "APK was verified with apksigner and aapt."
-          echo "APK bytes remain outside app storage; only library metadata is local."
-          echo "Read∞ stable release workflow completed."
+          echo "Artifact attestations: enabled for both APKs"
+          echo "APK signatures verified with apksigner."
+          echo "Read∞ ARM release workflow completed."
           echo ""
-          echo "No universal, x86, x86_64, or armeabi-v7a APK is produced by this workflow."
-          echo ""
-          echo "SHA256:"
-          cat "apps/readest-app/${{ steps.apk.outputs.path }}.sha256"
+          echo "SHA256 arm64-v8a:"
+          cat "apps/readest-app/${{ steps.apk.outputs.arm64_asset }}.sha256"
+          echo "SHA256 armeabi-v7a:"
+          cat "apps/readest-app/${{ steps.apk.outputs.armv7_asset }}.sha256"
 
-      - name: Upload source-independent release metadata
+      - name: Upload ARM release metadata
         uses: actions/upload-artifact@v4
         with:
-          name: readinfinity-arm64-release-metadata-${{ github.sha }}
-          path: apps/readest-app/${{ steps.apk.outputs.path }}.sha256
+          name: readinfinity-arm-release-metadata-${{ github.sha }}
+          path: |
+            apps/readest-app/${{ steps.apk.outputs.arm64_asset }}.sha256
+            apps/readest-app/${{ steps.apk.outputs.armv7_asset }}.sha256
           if-no-files-found: error
           retention-days: 90
