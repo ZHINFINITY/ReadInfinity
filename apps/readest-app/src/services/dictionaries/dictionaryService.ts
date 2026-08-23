@@ -12,6 +12,7 @@
 import type { FileSystem } from '@/types/system';
 import type { SelectedFile } from '@/hooks/useFileSelector';
 import { uniqueId } from '@/utils/misc';
+import { md5 } from '@/utils/md5';
 import { getFilename } from '@/utils/path';
 import type { ImportedDictionary } from './types';
 import { scanEntryOffsets, serializeOffsetsSidecar } from './stardictReader';
@@ -654,6 +655,110 @@ async function importBglBundle(
   };
 }
 
+function externalDictionaryId(kind: Bundle['kind'], externalRoot: string, filenames: string[]): string {
+  return `external-${md5(`${kind}|${externalRoot}|${[...filenames].sort().join('|')}`)}`;
+}
+
+/** Build a direct-folder record without opening large dictionary payloads. */
+async function createExternalDictionary(
+  fs: FileSystem,
+  bundle: Bundle,
+  externalRoot: string,
+): Promise<ImportedDictionary> {
+  const bundleDir = externalRoot;
+  const addedAt = Date.now();
+  if (bundle.kind === 'stardict') {
+    let name = bundle.stem;
+    let lang: string | undefined;
+    try {
+      const ifo = parseIfo(await (await readSource(fs, bundle.ifo.source)).text());
+      name = ifo.bookname || name;
+      lang = ifo.lang || ifo.idxoffsetlang || undefined;
+    } catch {
+      // Keep the filename stem when the small .ifo header is unreadable.
+    }
+    const filenames = [bundle.ifo.name, bundle.idx.name, bundle.dict.name];
+    if (bundle.syn?.name) filenames.push(bundle.syn.name);
+    const id = externalDictionaryId(bundle.kind, externalRoot, filenames);
+    return {
+      id,
+      contentId: id,
+      kind: 'stardict',
+      name,
+      bundleDir,
+      externalRoot,
+      files: {
+        ifo: bundle.ifo.name,
+        idx: bundle.idx.name,
+        dict: bundle.dict.name,
+        syn: bundle.syn?.name,
+      },
+      lang,
+      addedAt,
+    };
+  }
+  if (bundle.kind === 'mdict') {
+    const filenames = [
+      bundle.mdx.name,
+      ...bundle.mdd.map((m) => m.name),
+      ...bundle.css.map((c) => c.name),
+    ];
+    const id = externalDictionaryId(bundle.kind, externalRoot, filenames);
+    return {
+      id,
+      contentId: id,
+      kind: 'mdict',
+      name: bundle.stem,
+      bundleDir,
+      externalRoot,
+      files: {
+        mdx: bundle.mdx.name,
+        mdd: bundle.mdd.map((m) => m.name),
+        css: bundle.css.length ? bundle.css.map((c) => c.name) : undefined,
+      },
+      addedAt,
+    };
+  }
+  if (bundle.kind === 'dict') {
+    const filenames = [bundle.index.name, bundle.dict.name];
+    const id = externalDictionaryId(bundle.kind, externalRoot, filenames);
+    return {
+      id,
+      contentId: id,
+      kind: 'dict',
+      name: bundle.stem,
+      bundleDir,
+      externalRoot,
+      files: { index: bundle.index.name, dict: bundle.dict.name },
+      addedAt,
+    };
+  }
+  if (bundle.kind === 'slob') {
+    const id = externalDictionaryId(bundle.kind, externalRoot, [bundle.slob.name]);
+    return {
+      id,
+      contentId: id,
+      kind: 'slob',
+      name: bundle.stem,
+      bundleDir,
+      externalRoot,
+      files: { slob: bundle.slob.name },
+      addedAt,
+    };
+  }
+  const id = externalDictionaryId(bundle.kind, externalRoot, [bundle.bgl.name]);
+  return {
+    id,
+    contentId: id,
+    kind: 'bgl',
+    name: bundle.stem,
+    bundleDir,
+    externalRoot,
+    files: { bgl: bundle.bgl.name },
+    addedAt,
+  };
+}
+
 export interface ImportDictionariesResult {
   imported: ImportedDictionary[];
   /**
@@ -793,8 +898,9 @@ export async function loadDictionariesFromFolder(
   externalRoot: string,
   existingDictionaries: ImportedDictionary[] = [],
 ): Promise<ImportDictionariesResult> {
-  const files = await fs.readDir(externalRoot, 'None');
   const supported = new Set(['ifo', 'idx', 'dict', 'dz', 'syn', 'mdx', 'mdd', 'css', 'index', 'slob', 'bgl']);
+  const files = await fs.readDir(externalRoot, 'None', [...supported]);
+  const normalizedRoot = externalRoot.replace(/[\\/]$/, '').replace(/\\/g, '/');
   const selected: SelectedFile[] = files
     .filter(({ path }) => {
       const name = path.replace(/\\/g, '/').split('/').pop() ?? path;
@@ -803,38 +909,43 @@ export async function loadDictionariesFromFolder(
       return supported.has(ext);
     })
     .map(({ path }) => {
-      const relative = path.replace(/\\/g, '/').replace(/^\/+/, '');
+      const normalizedPath = path.replace(/\\/g, '/');
+      const relative = normalizedPath.startsWith(`${normalizedRoot}/`)
+        ? normalizedPath.slice(normalizedRoot.length + 1)
+        : normalizedPath.replace(/^\/+/, '');
       return {
-        path: `${externalRoot.replace(/[\\/]$/, '')}/${relative}`,
+        path: `${normalizedRoot}/${relative}`,
         name: relative,
       };
     });
   const { bundles, orphans } = groupBundlesByStem(selected);
   const imported: ImportedDictionary[] = [];
+  const importErrors: { name: string; message: string }[] = [];
   const seenKeys = new Set(
     existingDictionaries
       .filter((dict) => dict.externalRoot === externalRoot && !dict.deletedAt)
       .map((dict) => `${dict.kind}:${JSON.stringify(dict.files)}`),
   );
   for (const bundle of bundles) {
-    let dict: ImportedDictionary;
-    if (bundle.kind === 'stardict') {
-      dict = await importStarDictBundle(fs, bundle, { externalRoot });
-    } else if (bundle.kind === 'mdict') {
-      dict = await importMdictBundle(fs, bundle, { externalRoot });
-    } else if (bundle.kind === 'dict') {
-      dict = await importDictBundle(fs, bundle, { externalRoot });
-    } else if (bundle.kind === 'slob') {
-      dict = await importSlobBundle(fs, bundle, { externalRoot });
-    } else {
-      dict = await importBglBundle(fs, bundle, { externalRoot });
+    try {
+      const dict = await createExternalDictionary(fs, bundle, externalRoot);
+      const key = `${dict.kind}:${JSON.stringify(dict.files)}`;
+      if (seenKeys.has(key)) continue;
+      seenKeys.add(key);
+      imported.push(dict);
+    } catch (error) {
+      importErrors.push({
+        name: bundle.stem,
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
-    const key = `${dict.kind}:${JSON.stringify(dict.files)}`;
-    if (seenKeys.has(key)) continue;
-    seenKeys.add(key);
-    imported.push(dict);
   }
-  return { imported, replacements: [], orphanFiles: orphans.map((o) => o.name) };
+  return {
+    imported,
+    replacements: [],
+    orphanFiles: orphans.map((o) => o.name),
+    ...(importErrors.length > 0 ? { importErrors } : {}),
+  };
 }
 
 /** Remove a dictionary's app-managed bundle directory. External folders are user-owned. */

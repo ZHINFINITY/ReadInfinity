@@ -561,6 +561,15 @@ const CustomDictionaries: React.FC<CustomDictionariesProps> = ({ onBack }) => {
           timeout: 3000,
         });
       }
+      if (result.importErrors && result.importErrors.length > 0) {
+        eventDispatcher.dispatch('toast', {
+          type: 'warning',
+          message: _('Some dictionary bundles could not be loaded: {{names}}', {
+            names: result.importErrors.map((item) => `${item.name}: ${item.message}`).join(', '),
+          }),
+          timeout: 5000,
+        });
+      }
       if (result.orphanFiles.length > 0) {
         eventDispatcher.dispatch('toast', {
           type: 'warning',

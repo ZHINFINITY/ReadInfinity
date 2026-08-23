@@ -56,6 +56,7 @@ import app.tauri.plugin.JSArray
 import app.tauri.plugin.Plugin
 import app.tauri.plugin.Invoke
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.*
 import kotlin.math.abs
 import kotlinx.coroutines.*
@@ -294,6 +295,8 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
         private const val REQUEST_MANAGE_STORAGE = 1001
         private const val FOLDER_PICKER_REQUEST_CODE = 1002
         private const val FILE_PICKER_REQUEST_CODE = 1003
+        private const val DIRECTORY_PICKER_PREFS = "native_bridge_directory_picker"
+        private const val DIRECTORY_PICKER_RESULT_KEY = "result"
         var pendingInvoke: Invoke? = null
         private var pendingAuthCallbackTarget: OAuthCallbackTarget? = null
         var pendingFolderPickerInvoke: Invoke? = null
@@ -1331,6 +1334,43 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
     }
 
         @Command
+    fun get_directory_picker_result(invoke: Invoke) {
+        val prefs = activity.getSharedPreferences(DIRECTORY_PICKER_PREFS, Context.MODE_PRIVATE)
+        val raw = prefs.getString(DIRECTORY_PICKER_RESULT_KEY, null)
+        if (raw == null) {
+            invoke.resolve(JSObject().apply { put("pending", false) })
+            return
+        }
+        prefs.edit().remove(DIRECTORY_PICKER_RESULT_KEY).apply()
+        try {
+            val json = JSONObject(raw)
+            val result = JSObject().apply {
+                put("pending", true)
+                put("cancelled", json.optBoolean("cancelled", true))
+                if (json.isNull("uri")) put("uri", null) else put("uri", json.optString("uri"))
+                if (json.isNull("path")) put("path", null) else put("path", json.optString("path"))
+                if (json.isNull("error")) put("error", null) else put("error", json.optString("error"))
+            }
+            invoke.resolve(result)
+        } catch (e: Exception) {
+            invoke.resolve(JSObject().apply {
+                put("pending", true)
+                put("cancelled", true)
+                put("error", "Invalid saved folder result: ${e.message}")
+            })
+        }
+    }
+
+    @Command
+    fun clear_directory_picker_result(invoke: Invoke) {
+        activity.getSharedPreferences(DIRECTORY_PICKER_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .remove(DIRECTORY_PICKER_RESULT_KEY)
+            .apply()
+        invoke.resolve()
+    }
+
+    @Command
     fun select_directory(invoke: Invoke) {
         pendingFolderPickerInvoke = invoke
 
@@ -1352,6 +1392,7 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
                 put("path", null)
                 put("error", e.message)
             }
+            persistDirectoryPickerResult(true, null, null, e.message)
             invoke.resolve(result)
             emitOrQueue("directory-picker-result", result)
         }
@@ -1369,6 +1410,24 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
         }
     }
 
+    private fun persistDirectoryPickerResult(
+        cancelled: Boolean,
+        uri: Uri?,
+        path: String?,
+        error: String?,
+    ) {
+        val json = JSONObject().apply {
+            put("cancelled", cancelled)
+            put("uri", uri?.toString() ?: JSONObject.NULL)
+            put("path", path ?: JSONObject.NULL)
+            put("error", error ?: JSONObject.NULL)
+        }
+        activity.getSharedPreferences(DIRECTORY_PICKER_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(DIRECTORY_PICKER_RESULT_KEY, json.toString())
+            .apply()
+    }
+
     private fun handleDirectorySelected(
         uri: Uri?,
         resultCode: Int,
@@ -1376,12 +1435,15 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
         invoke: Invoke?,
     ) {
         val result = JSObject()
-        if (resultCode != Activity.RESULT_OK || uri == null) {
+        val cancelled = resultCode != Activity.RESULT_OK || uri == null
+        var path: String? = null
+        var error: String? = null
+        if (cancelled) {
             result.put("cancelled", true)
             result.put("uri", uri?.toString())
             result.put("path", null)
         } else {
-            val path = extractPathFromUri(uri)
+            path = extractPathFromUri(uri)
             result.put("cancelled", false)
             result.put("uri", uri.toString())
             result.put("path", path)
@@ -1396,13 +1458,15 @@ class NativeBridgePlugin(private val activity: Activity): Plugin(activity) {
                 } catch (e: SecurityException) {
                     // Absolute-path access remains valid under All Files
                     // Access; surface the issue without discarding the path.
-                    result.put("error", "Folder permission could not be persisted: ${e.message}")
+                    error = "Folder permission could not be persisted: ${e.message}"
                 }
             }
             if (path == null) {
-                result.put("error", "The selected provider does not expose a local Android path")
+                error = "The selected provider does not expose a local Android path"
             }
+            if (error != null) result.put("error", error)
         }
+        persistDirectoryPickerResult(cancelled, uri, path, error)
         invoke?.resolve(result)
         emitOrQueue("directory-picker-result", result)
     }

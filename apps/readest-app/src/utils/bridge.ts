@@ -296,13 +296,32 @@ export async function getExternalSDCardPath(): Promise<GetExternalSDCardPathResp
   return result;
 }
 
+function localPathFromAndroidTreeUri(uri?: string): string | undefined {
+  const prefix = 'content://com.android.externalstorage.documents/tree/';
+  if (!uri?.startsWith(prefix)) return undefined;
+  try {
+    const encodedDocId = uri.slice(prefix.length).split('/')[0];
+    const docId = decodeURIComponent(encodedDocId);
+    const separator = docId.indexOf(':');
+    const volume = separator >= 0 ? docId.slice(0, separator) : docId;
+    const relative = separator >= 0 ? docId.slice(separator + 1).replace(/^\/+/, '') : '';
+    const root = volume.toLowerCase() === 'primary' || volume.toLowerCase() === 'home'
+      ? '/storage/emulated/0'
+      : `/storage/${volume}`;
+    return relative ? `${root}/${relative}` : root;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function selectDirectory(useEventQueue = false): Promise<SelectDirectoryResponse> {
   if (!useEventQueue) {
     return await invoke<SelectDirectoryResponse>('plugin:native-bridge|select_directory');
   }
-  // DocumentsUI may recreate Android's activity/WebView while the picker is
-  // open. NativeBridgePlugin emits a replayable event in addition to the
-  // legacy invoke response; registering before invoke prevents a result race.
+  // Android's DocumentsUI can destroy the Activity/WebView while the picker is
+  // open. Register the event first, then use both the replayable event and a
+  // persisted-result poll. The poll also handles native builds where the
+  // Activity result arrives after the original invoke promise is gone.
   let resolveEvent: (result: SelectDirectoryResponse) => void = () => undefined;
   const eventResult = new Promise<SelectDirectoryResponse>((resolve) => {
     resolveEvent = resolve;
@@ -312,11 +331,45 @@ export async function selectDirectory(useEventQueue = false): Promise<SelectDire
     DIRECTORY_PICKER_EVENT,
     (payload) => resolveEvent(payload),
   );
+  // Do not launch DocumentsUI until the native listener is actually wired.
+  // Merely creating the listener promise is not sufficient on a cold WebView.
+  await listener.catch(() => undefined);
+  await invoke('plugin:native-bridge|clear_directory_picker_result').catch(() => undefined);
+  const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+  const pollResult = (async (): Promise<SelectDirectoryResponse> => {
+    for (let attempt = 0; attempt < 480; attempt += 1) {
+      try {
+        const result = await invoke<SelectDirectoryResponse & { pending?: boolean }>(
+          'plugin:native-bridge|get_directory_picker_result',
+        );
+        if (result?.pending) return result;
+      } catch {
+        // Older native builds do not expose the poll command; the event or
+        // original invoke response remains the fallback.
+        return await new Promise<never>(() => undefined);
+      }
+      await sleep(250);
+    }
+    return {
+      cancelled: true,
+      error: 'Timed out waiting for the Android folder picker result',
+    };
+  })();
   try {
-    const invokeResult = invoke<SelectDirectoryResponse>('plugin:native-bridge|select_directory');
-    // iOS and older native builds remain invoke-only; Android builds with the
-    // lifecycle-safe event resolve from whichever channel arrives first.
-    return await Promise.race([invokeResult, eventResult]);
+    const invokeResult = invoke<SelectDirectoryResponse>('plugin:native-bridge|select_directory')
+      .then((result) => {
+        // Some older native builds resolve the launch invoke with undefined.
+        // Do not let that sentinel win the race over the real event/poll.
+        if (!result || typeof result !== 'object') return new Promise<never>(() => undefined);
+        return result;
+      })
+      .catch((error) => ({
+        cancelled: true,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+    const result = await Promise.race([invokeResult, eventResult, pollResult]);
+    const fallbackPath = localPathFromAndroidTreeUri(result.uri);
+    return result.path || !fallbackPath ? result : { ...result, path: fallbackPath };
   } finally {
     listener.then((l) => l.unregister());
   }
