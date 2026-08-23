@@ -28,6 +28,7 @@ const COMMANDS: &[&str] = &[
     "get_lookup_dictionary",
     "clear_lookup_dictionary",
     "select_directory",
+    "show_directory_picker",
     "show_file_picker",
     "get_storefront_region_code",
     "register_listener",
