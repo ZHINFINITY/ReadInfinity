@@ -20,6 +20,9 @@ const publishDictUpsert = (dict: ImportedDictionary): void => {
 const publishDictDelete = (contentId: string): void => {
   void publishReplicaDelete(DICTIONARY_KIND, contentId);
 };
+const publishLocalDictionaryUpsert = (dict: ImportedDictionary): void => {
+  if (!dict.externalRoot) publishDictUpsert(dict);
+};
 
 /**
  * Built-in web-search ids are seeded into `providerOrder` but disabled by
@@ -219,7 +222,7 @@ export const useCustomDictionaryStore = create<DictionaryStoreState>((set, get) 
         settings: { ...state.settings, providerOrder: order, providerEnabled: enabled },
       };
     });
-    if (!dict.externalRoot) publishDictUpsert(dict);
+    publishLocalDictionaryUpsert(dict);
   },
 
   applyRemoteDictionary: (dict) => {
@@ -313,7 +316,7 @@ export const useCustomDictionaryStore = create<DictionaryStoreState>((set, get) 
       const dictionaries = state.dictionaries.map((d, i) => (i === idx ? updated! : d));
       return { dictionaries };
     });
-    if (updated && !updated.externalRoot) publishDictUpsert(updated);
+    if (updated) publishLocalDictionaryUpsert(updated);
   },
 
   replaceDictionaries: (oldIds, newDict) => {
@@ -381,7 +384,7 @@ export const useCustomDictionaryStore = create<DictionaryStoreState>((set, get) 
     if (!isContentSurvivingSwap) {
       for (const contentId of oldContentIds) publishDictDelete(contentId);
     }
-    if (!newDict.externalRoot) publishDictUpsert(newDict);
+    publishLocalDictionaryUpsert(newDict);
   },
 
   removeDictionary: (id) => {
