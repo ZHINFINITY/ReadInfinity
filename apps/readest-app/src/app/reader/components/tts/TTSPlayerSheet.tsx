@@ -424,13 +424,13 @@ const TTSPlayerSheet = ({
               <div className='flex min-w-0 flex-1 flex-col items-start'>
                 <span className='text-sm font-semibold'>{_('Offline Audio')}</span>
                 <span className='text-base-content/60 line-clamp-1 text-start text-xs'>
-                  {premiumBadge
-                    ? _('Download chapters for offline playback')
-                    : _('{{done}} of {{total}} downloaded', {
+                  {downloads.chapters.filter((c) => downloads.statusOf(c) === 'complete').length > 0
+                    ? _('{{done}} of {{total}} downloaded', {
                         done: downloads.chapters.filter((c) => downloads.statusOf(c) === 'complete')
                           .length,
                         total: downloads.chapters.length,
-                      })}
+                      })
+                    : _('Download chapters for offline playback')}
                 </span>
               </div>
               <MdChevronRight size={iconSize24} className='shrink-0 rtl:rotate-180' />
