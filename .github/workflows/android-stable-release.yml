@@ -88,15 +88,17 @@ jobs:
       - name: Prepare local reader vendors
         run: pnpm --filter @readest/readest-app setup-vendors
 
+      - name: Initialize Android project
+        run: pnpm --filter @readest/readest-app tauri android init
+
       - name: Regenerate native launcher icons
         working-directory: apps/readest-app
         run: |
           set -euo pipefail
           cmp -s src-tauri/icons/icon.png public/icon.png
           pnpm tauri icon src-tauri/icons/icon.png
-
-      - name: Initialize Android project
-        run: pnpm --filter @readest/readest-app tauri android init
+          test -s src-tauri/gen/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          test -s src-tauri/gen/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png
 
       - name: Pin Android package and launcher label
         run: |
