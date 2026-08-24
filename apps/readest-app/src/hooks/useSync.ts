@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useEnv } from '@/context/EnvContext';
 import { useSyncContext } from '@/context/SyncContext';
 import { SyncData, SyncOp, SyncResult, SyncType } from '@/libs/sync';
@@ -11,7 +10,6 @@ import { transformBookNoteFromDB } from '@/utils/transform';
 import { transformBookFromDB } from '@/utils/transform';
 import { DBBook, DBBookConfig, DBBookNote } from '@/types/records';
 import { Book, BookConfig, BookDataRecord, BookNote } from '@/types/book';
-import { navigateToLogin } from '@/utils/nav';
 import { useReaderStore } from '@/store/readerStore';
 
 const transformsFromDB = {
@@ -108,7 +106,6 @@ export async function pullBooksPaged(
 
 const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 export function useSync(bookKey?: string) {
-  const router = useRouter();
   const { envConfig } = useEnv();
   const { settings, setSettings, saveSettings } = useSettingsStore();
   const { getConfig, setConfig } = useBookDataStore();
@@ -240,7 +237,6 @@ export function useSync(bookKey?: string) {
         if (err.message.includes('Not authenticated') && latest.keepLogin) {
           latest.keepLogin = false;
           setSettings(latest);
-          navigateToLogin(router);
         }
         setSyncError(err.message || `Error pulling ${type}`);
       } else {

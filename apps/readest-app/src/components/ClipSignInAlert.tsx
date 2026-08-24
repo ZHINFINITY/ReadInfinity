@@ -4,6 +4,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useThemeStore } from '@/store/themeStore';
 import { eventDispatcher } from '@/utils/event';
 import Alert from './Alert';
+import { IS_OFFLINE_BUILD } from '@/config/offline';
 
 interface ClipSignInRequest {
   url: string;
@@ -23,6 +24,7 @@ const ClipSignInAlert: React.FC = () => {
   const requestRef = useRef<ClipSignInRequest | null>(null);
 
   useEffect(() => {
+    if (IS_OFFLINE_BUILD) return;
     const onConfirmRequest = (event: CustomEvent) => {
       // One request at a time — a concurrent clip's request stays
       // unconsumed and resolves to "declined" in the dispatcher.

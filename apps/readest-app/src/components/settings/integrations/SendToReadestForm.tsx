@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { MdContentCopy, MdRefresh, MdCheck, MdClose, MdAdd } from 'react-icons/md';
 import { RiSendPlaneLine } from 'react-icons/ri';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -8,12 +7,12 @@ import { fetchWithAuth } from '@/utils/fetch';
 import { getAPIBaseUrl } from '@/services/environment';
 import { isInboxDrainEnabled, setInboxDrainEnabled } from '@/services/send/devicePrefs';
 import { getAccessToken, getUserProfilePlan, isEmailInPlan } from '@/utils/access';
-import { navigateToLogin, navigateToProfile } from '@/utils/nav';
 import { eventDispatcher } from '@/utils/event';
 import type { UserPlan } from '@/types/quota';
 import type { DBSendAllowedSender, DBSendInboxItem } from '@/types/sendRecords';
 import SubPageHeader from '../SubPageHeader';
 import { BoxedList, SectionTitle, SettingLabel, SettingsSwitchRow } from '../primitives';
+import { IS_OFFLINE_BUILD } from '@/config/offline';
 
 interface SendToReadestFormProps {
   onBack: () => void;
@@ -35,7 +34,6 @@ function suffixOf(address: string): string {
 
 const SendToReadestForm: React.FC<SendToReadestFormProps> = ({ onBack }) => {
   const _ = useTranslation();
-  const router = useRouter();
   const { user } = useAuth();
   const apiBase = getAPIBaseUrl();
 
@@ -67,6 +65,7 @@ const SendToReadestForm: React.FC<SendToReadestFormProps> = ({ onBack }) => {
   };
 
   const load = useCallback(async () => {
+    if (IS_OFFLINE_BUILD) return;
     try {
       // Resolve the user's plan first — free users get the upgrade card and
       // we skip the address / senders calls entirely (they'd 403 anyway).
@@ -98,7 +97,7 @@ const SendToReadestForm: React.FC<SendToReadestFormProps> = ({ onBack }) => {
   }, [apiBase]);
 
   useEffect(() => {
-    if (user) void load();
+    if (!IS_OFFLINE_BUILD && user) void load();
   }, [user, load]);
 
   const copyAddress = async () => {
@@ -194,21 +193,14 @@ const SendToReadestForm: React.FC<SendToReadestFormProps> = ({ onBack }) => {
         onBack={onBack}
       />
 
-      {!user ? (
+      {IS_OFFLINE_BUILD || !user ? (
         <div className='flex flex-col items-center gap-4 px-6 py-16 text-center'>
           <span className='bg-base-200 text-base-content/60 flex h-16 w-16 items-center justify-center rounded-full'>
             <RiSendPlaneLine className='h-7 w-7' />
           </span>
           <p className='text-base-content/70 max-w-xs text-sm leading-relaxed'>
-            {_('Sign in to send books and articles to your library.')}
+            {_('Email and cloud sending are unavailable in the offline build.')}
           </p>
-          <button
-            type='button'
-            className='btn btn-contrast btn-sm'
-            onClick={() => navigateToLogin(router)}
-          >
-            {_('Sign in')}
-          </button>
         </div>
       ) : loading ? (
         <div className='space-y-6' aria-busy='true'>
@@ -237,12 +229,8 @@ const SendToReadestForm: React.FC<SendToReadestFormProps> = ({ onBack }) => {
                 'Forward attachments and articles to your private Read∞ address. Available on the Plus, Pro, and Lifetime plans.',
               )}
             </p>
-            <button
-              type='button'
-              className='btn btn-contrast btn-sm mt-1'
-              onClick={() => navigateToProfile(router)}
-            >
-              {_('View plans')}
+            <button type='button' className='btn btn-contrast btn-sm mt-1' onClick={onBack}>
+              {_('Back')}
             </button>
             <p className='text-base-content/55 mt-2 max-w-sm text-xs leading-relaxed'>
               {_(

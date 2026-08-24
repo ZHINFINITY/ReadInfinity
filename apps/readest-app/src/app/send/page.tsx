@@ -15,6 +15,7 @@ import {
 } from '@/services/send/conversion/conversionWorker';
 import { getClipOptions } from '@/services/send/clipOptions';
 import { invoke } from '@tauri-apps/api/core';
+import { IS_OFFLINE_BUILD } from '@/config/offline';
 
 type ItemStatus = 'working' | 'done' | 'error';
 
@@ -114,12 +115,14 @@ export default function SendPage() {
     }
   }, [url, importResolvedFile, setItem, _]);
 
-  if (!user) {
+  if (IS_OFFLINE_BUILD || !user) {
     return (
       <div className='mx-auto flex max-w-[560px] flex-col items-center px-4 py-16 text-center'>
-        <h1 className='text-xl font-semibold'>{_('Send to Read∞')}</h1>
+        <h1 className='text-xl font-semibold'>{_('Send to device')}</h1>
         <p className='text-base-content/70 mt-2 text-sm'>
-          {_('Sign in to send books and articles to your library.')}
+          {_(
+            'This cloud sending page is unavailable offline. Open books directly from a device folder.',
+          )}
         </p>
       </div>
     );

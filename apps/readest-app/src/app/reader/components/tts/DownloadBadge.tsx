@@ -56,7 +56,7 @@ const DownloadBadge: React.FC<DownloadBadgeProps> = ({
     return (
       <button
         type='button'
-        aria-label={`${_('Stop downloading')}: ${chapterLabel}`}
+        aria-label={`${_('Stop preparing')}: ${chapterLabel}`}
         disabled={disabled}
         onClick={onCancel}
         className='touch-target relative flex shrink-0 items-center justify-center'
@@ -106,10 +106,10 @@ const DownloadBadge: React.FC<DownloadBadgeProps> = ({
 
   const [Icon, label, tone, onClick] =
     status === 'complete'
-      ? [MdOfflinePin, _('Downloaded'), isEink ? 'text-base-content' : 'text-primary', null]
+      ? [MdOfflinePin, _('Saved offline'), isEink ? 'text-base-content' : 'text-primary', null]
       : failed || status === 'partial'
-        ? [MdDownloadForOffline, _('Resume download'), 'text-base-content/70', onDownload]
-        : [MdOutlineFileDownload, _('Download chapter'), 'text-base-content/70', onDownload];
+        ? [MdDownloadForOffline, _('Resume preparation'), 'text-base-content/70', onDownload]
+        : [MdOutlineFileDownload, _('Save chapter offline'), 'text-base-content/70', onDownload];
 
   return (
     <button

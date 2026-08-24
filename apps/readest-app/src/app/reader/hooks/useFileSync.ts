@@ -18,6 +18,7 @@ import {
   type FileSyncBackendKind,
 } from '@/services/sync/file/providerRegistry';
 import { canBackendRun } from '@/services/sync/file/runLibrarySync';
+import { IS_OFFLINE_BUILD } from '@/config/offline';
 import {
   getActiveFileSyncBackends,
   settingsKeyForBackend,
@@ -110,7 +111,7 @@ export const useFileSync = (bookKey: string) => {
   // Readest Cloud's native progress sync is useProgressSync's job, not this
   // hook's, and runs independently.
   const activeKinds = useMemo(
-    () => getActiveFileSyncBackends(settings, userProfilePlan ?? 'free'),
+    () => (IS_OFFLINE_BUILD ? [] : getActiveFileSyncBackends(settings, userProfilePlan ?? 'free')),
     [settings, userProfilePlan],
   );
 

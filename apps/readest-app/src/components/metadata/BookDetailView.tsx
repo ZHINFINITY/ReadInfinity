@@ -28,6 +28,7 @@ import {
   getContributorNames,
 } from '@/utils/book';
 import { isFeedBook } from '@/services/rss/feedBookUrl';
+import { IS_OFFLINE_BUILD } from '@/config/offline';
 import { saveSysSettings } from '@/helpers/settings';
 import BookCover from '@/components/BookCover';
 import BookCoverViewer, { useBookCoverViewer } from '@/components/BookCoverViewer';
@@ -142,13 +143,13 @@ const BookDetailView: React.FC<BookDetailViewProps> = ({
                 <MdOutlineEdit className='hover:fill-blue-500' />
               </button>
             )}
-            {book.uploadedAt && onDownload && (
+            {!IS_OFFLINE_BUILD && book.uploadedAt && onDownload && (
               <button onClick={onDownload} title={_('Download from Cloud')}>
                 <MdOutlineCloudDownload className='fill-base-content' />
               </button>
             )}
             {/* A feed book is fileless — there is nothing to push (#5307). */}
-            {book.downloadedAt && !isFeedBook(book) && onUpload && (
+            {!IS_OFFLINE_BUILD && book.downloadedAt && !isFeedBook(book) && onUpload && (
               <button onClick={onUpload} title={_('Upload to Cloud')}>
                 <MdOutlineCloudUpload className='fill-base-content' />
               </button>
@@ -169,13 +170,15 @@ const BookDetailView: React.FC<BookDetailViewProps> = ({
                   <MenuItem
                     noIcon
                     transient
-                    label={_('Remove from Cloud & Device')}
+                    label={
+                      IS_OFFLINE_BUILD ? _('Remove from Device') : _('Remove from Cloud & Device')
+                    }
                     onClick={onDelete}
                   />
                   {/* Offered only where a cloud-only removal means something: a
                       third-party provider mirrors the library, so it would just
                       re-upload the still-local book on its next sync (#5084). */}
-                  {onDeleteCloudBackup && (
+                  {!IS_OFFLINE_BUILD && onDeleteCloudBackup && (
                     <MenuItem
                       noIcon
                       transient
@@ -184,13 +187,15 @@ const BookDetailView: React.FC<BookDetailViewProps> = ({
                       disabled={!book.uploadedAt}
                     />
                   )}
-                  <MenuItem
-                    noIcon
-                    transient
-                    label={_('Remove from Device Only')}
-                    onClick={onDeleteLocalCopy}
-                    disabled={!book.downloadedAt}
-                  />
+                  {!IS_OFFLINE_BUILD && (
+                    <MenuItem
+                      noIcon
+                      transient
+                      label={_('Remove from Device Only')}
+                      onClick={onDeleteLocalCopy}
+                      disabled={!book.downloadedAt}
+                    />
+                  )}
                 </div>
               </Dropdown>
             )}
@@ -214,7 +219,7 @@ const BookDetailView: React.FC<BookDetailViewProps> = ({
                     openExternalUrl(getGoodreadsSearchUrl(getBookGoodreadsQuery(book)))
                   }
                 />
-                {onShare && (
+                {!IS_OFFLINE_BUILD && onShare && (
                   <MenuItem
                     noIcon
                     transient
@@ -223,7 +228,7 @@ const BookDetailView: React.FC<BookDetailViewProps> = ({
                     tooltip={
                       shareEnabled
                         ? undefined
-                        : _('Sign in and make the book available to share it')
+                        : _('Make the book available on this device before sharing it')
                     }
                     onClick={onShare}
                   />
@@ -234,7 +239,9 @@ const BookDetailView: React.FC<BookDetailViewProps> = ({
                     transient
                     label={_('Export Book')}
                     disabled={!hasLocalFile}
-                    tooltip={hasLocalFile ? undefined : _('Download the book to export it')}
+                    tooltip={
+                      hasLocalFile ? undefined : _('The book file is not available on this device')
+                    }
                     onClick={onExport}
                   />
                 )}

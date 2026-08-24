@@ -846,7 +846,6 @@ export type BookContextMenuItemId =
   | 'showDetails'
   | 'showInFinder'
   | 'searchGoodreads'
-  | 'share'
   | 'sendNearby'
   | 'delete';
 

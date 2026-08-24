@@ -5,12 +5,12 @@ import { useEnv } from '@/context/EnvContext';
 import { useLibraryStore } from '@/store/libraryStore';
 import { isTauriAppPlatform } from '@/services/environment';
 import { eventDispatcher } from '@/utils/event';
-import { useAuth } from '@/context/AuthContext';
 import { navigateToReader } from '@/utils/nav';
 import { ShareApiError, confirmDownload, importShare } from '@/libs/share';
 import { ensureSharedBookLocal } from '@/libs/shareImport';
 import { parseShareDeepLink, type ShareDeepLink } from '@/utils/share';
 import { useTranslation } from './useTranslation';
+import { IS_OFFLINE_BUILD } from '@/config/offline';
 
 // Module-scoped flag matches the useOpenAnnotationLink pattern. Tauri's
 // getCurrent() keeps returning the launch URL for the entire app session, so
@@ -44,17 +44,18 @@ export function useOpenShareLink() {
   const _ = useTranslation();
   const router = useRouter();
   const { appService } = useEnv();
-  const { user } = useAuth();
   const libraryLoaded = useLibraryStore((s) => s.libraryLoaded);
   const pending = useRef<ShareDeepLink | null>(null);
 
   const handleShareLink = useCallback(
     async ({ token }: ShareDeepLink) => {
-      if (!user) {
+      if (IS_OFFLINE_BUILD) {
         eventDispatcher.dispatch('toast', {
           type: 'info',
-          message: _('Sign in to import shared books'),
-          timeout: 2500,
+          message: _(
+            'Shared-link import is unavailable offline. Open the book from device storage.',
+          ),
+          timeout: 3000,
         });
         return;
       }
@@ -92,7 +93,7 @@ export function useOpenShareLink() {
         });
       }
     },
-    [_, router, user, appService],
+    [_, router, appService],
   );
 
   useEffect(() => {

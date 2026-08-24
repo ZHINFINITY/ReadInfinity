@@ -7,6 +7,7 @@ import { useLibraryStore } from '@/store/libraryStore';
 import { debounce } from '@/utils/debounce';
 import { getActiveFileSyncBackends } from '@/services/sync/cloudSyncProvider';
 import { runFileLibrarySyncPass } from '@/services/sync/file/runLibrarySync';
+import { IS_OFFLINE_BUILD } from '@/config/offline';
 
 /**
  * Library-scoped auto-sync for every enabled third-party cloud backend (#5062) —
@@ -38,7 +39,8 @@ export const useLibraryFileSync = () => {
   const libraryLoaded = useLibraryStore((s) => s.libraryLoaded);
   const { userProfilePlan } = useQuotaStats();
 
-  const hasBackends = getActiveFileSyncBackends(settings, userProfilePlan ?? 'free').length > 0;
+  const hasBackends =
+    !IS_OFFLINE_BUILD && getActiveFileSyncBackends(settings, userProfilePlan ?? 'free').length > 0;
 
   // Keep one stable debounced trigger that always calls the latest pass (via
   // ref), so it isn't recreated — and lost — on every settings change.

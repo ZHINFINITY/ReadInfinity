@@ -27,6 +27,7 @@ import {
   type RemoteFractionResolution,
 } from './kosyncProgress';
 import { useWindowActiveChanged } from './useWindowActiveChanged';
+import { IS_OFFLINE_BUILD } from '@/config/offline';
 
 type SyncState = 'idle' | 'checking' | 'conflict' | 'synced' | 'error';
 
@@ -87,6 +88,10 @@ export const useKOSync = (bookKey: string, provider: KosyncProgressProvider = ko
   const progress = useBookProgress(bookKey);
 
   useEffect(() => {
+    if (IS_OFFLINE_BUILD) {
+      setKOSyncClient(null);
+      return;
+    }
     const config = provider.selectConfig(settings);
     if (!config) {
       setKOSyncClient(null);
@@ -311,7 +316,8 @@ export const useKOSync = (bookKey: string, provider: KosyncProgressProvider = ko
   const pushProgress = useMemo(
     () =>
       debounce(async () => {
-        if (!bookKey || !appService || !kosyncClient || !hasPulledOnce.current) return;
+        if (IS_OFFLINE_BUILD || !bookKey || !appService || !kosyncClient || !hasPulledOnce.current)
+          return;
         const { settings } = useSettingsStore.getState();
         const config = provider.selectConfig(settings);
         if (!config || ['receive', 'disable'].includes(config.strategy)) return;
@@ -329,7 +335,7 @@ export const useKOSync = (bookKey: string, provider: KosyncProgressProvider = ko
 
   const pullProgress = useCallback(
     async () => {
-      if (!progress?.location || !appService || !kosyncClient) return;
+      if (IS_OFFLINE_BUILD || !progress?.location || !appService || !kosyncClient) return;
 
       const bookData = getBookData(bookKey);
       const book = bookData?.book;
@@ -427,7 +433,7 @@ export const useKOSync = (bookKey: string, provider: KosyncProgressProvider = ko
 
   // Pull: pull progress once when the book is opened
   useEffect(() => {
-    if (!appService || !kosyncClient || !progress?.location) return;
+    if (IS_OFFLINE_BUILD || !appService || !kosyncClient || !progress?.location) return;
     if (hasPulledOnce.current) return;
 
     syncRefs.current.pullProgress();

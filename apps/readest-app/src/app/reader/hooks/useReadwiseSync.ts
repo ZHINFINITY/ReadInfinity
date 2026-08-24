@@ -7,6 +7,7 @@ import { eventDispatcher } from '@/utils/event';
 import { debounce } from '@/utils/debounce';
 import { getPublicCoverUrl } from '@/utils/cover';
 import { ReadwiseClient } from '@/services/readwise';
+import { IS_OFFLINE_BUILD } from '@/config/offline';
 
 const READWISE_SYNC_DEBOUNCE_MS = 5000;
 
@@ -33,6 +34,7 @@ export const useReadwiseSync = (bookKey: string) => {
   const debouncedPush = useMemo(
     () =>
       debounce(async () => {
+        if (IS_OFFLINE_BUILD) return;
         const { settings } = useSettingsStore.getState();
         if (!settings.readwise?.enabled || !settings.readwise?.accessToken) return;
         const client = new ReadwiseClient(settings.readwise);
@@ -62,6 +64,7 @@ export const useReadwiseSync = (bookKey: string) => {
 
   // Manual "Push All": sends every annotation/excerpt regardless of sync timestamp
   const pushAllHighlights = useCallback(async () => {
+    if (IS_OFFLINE_BUILD) return;
     const { settings } = useSettingsStore.getState();
     if (!settings.readwise?.enabled || !settings.readwise?.accessToken) return;
     const client = new ReadwiseClient(settings.readwise);
@@ -111,6 +114,7 @@ export const useReadwiseSync = (bookKey: string) => {
   // Auto-sync whenever booknotes change; debouncedPush reads enabled state internally
   const config = getConfig(bookKey);
   useEffect(() => {
+    if (IS_OFFLINE_BUILD) return;
     debouncedPush();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config?.booknotes]);

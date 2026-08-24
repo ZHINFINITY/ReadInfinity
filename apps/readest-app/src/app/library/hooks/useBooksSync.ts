@@ -26,6 +26,7 @@ import {
 } from '@/app/library/utils/libraryUtils';
 import { getPrimaryLanguage } from '@/utils/book';
 import { isAudiobook, parseAbsFilePath } from '@/utils/audiobook';
+import { IS_OFFLINE_BUILD } from '@/config/offline';
 
 export const useBooksSync = () => {
   const _ = useTranslation();
@@ -76,6 +77,7 @@ export const useBooksSync = () => {
 
   const pullLibrary = useCallback(
     async (fullRefresh = false, verbose = false) => {
+      if (IS_OFFLINE_BUILD) return;
       // Providers are independently selectable (#5062): an enabled file
       // backend and Readest Cloud both run their own pass here, every
       // library-refresh surface — pull to refresh, the SettingsMenu sync
@@ -139,7 +141,7 @@ export const useBooksSync = () => {
   const handleAutoSync = useCallback(
     throttle(
       async () => {
-        if (isPullingRef.current) return;
+        if (IS_OFFLINE_BUILD || isPullingRef.current) return;
         // Readest Cloud unchecked: the native book channel is gated (the auto
         // library sync itself is useLibraryFileSync's).
         const settingsNow = useSettingsStore.getState().settings;
@@ -160,13 +162,13 @@ export const useBooksSync = () => {
   );
 
   useEffect(() => {
-    if (!user) return;
+    if (IS_OFFLINE_BUILD || !user) return;
     if (isPullingRef.current) return;
     handleAutoSync();
   }, [user, library, handleAutoSync]);
 
   const pushLibrary = useCallback(async () => {
-    if (!user) return;
+    if (IS_OFFLINE_BUILD || !user) return;
     const newBooks = getNewBooks();
     if (newBooks.lastSyncedAt) {
       await syncBooks(newBooks?.books, 'push');
@@ -174,7 +176,7 @@ export const useBooksSync = () => {
   }, [user, syncBooks, getNewBooks]);
 
   useEffect(() => {
-    if (!user || !useSyncInited || !libraryLoaded) return;
+    if (IS_OFFLINE_BUILD || !user || !useSyncInited || !libraryLoaded) return;
     pullLibrary();
   }, [user, useSyncInited, libraryLoaded, pullLibrary]);
 

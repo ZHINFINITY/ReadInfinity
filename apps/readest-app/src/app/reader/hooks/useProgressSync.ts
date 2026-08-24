@@ -15,6 +15,7 @@ import { CFI } from '@/libs/document';
 import { debounce } from '@/utils/debounce';
 import { eventDispatcher } from '@/utils/event';
 import { DEFAULT_BOOK_SEARCH_CONFIG, SYNC_PROGRESS_INTERVAL_SEC } from '@/services/constants';
+import { IS_OFFLINE_BUILD } from '@/config/offline';
 import { getCFIFromXPointer, getXPointerFromCFI } from '@/utils/xcfi';
 import { isMalformedLocationCfi } from '@/utils/cfi';
 
@@ -70,6 +71,7 @@ export const useProgressSync = (bookKey: string) => {
   };
 
   const pushConfig = async (bookKey: string, config: BookConfig | null) => {
+    if (IS_OFFLINE_BUILD) return;
     const book = getBookData(bookKey)?.book;
     if (!config || !book || !user) return;
     const bookHash = book.hash;
@@ -89,6 +91,7 @@ export const useProgressSync = (bookKey: string) => {
   };
 
   const pullConfig = async (bookKey: string) => {
+    if (IS_OFFLINE_BUILD) return;
     const book = getBookData(bookKey)?.book;
     if (!user || !book) return;
     const bookHash = bookKey.split('-')[0]!;
@@ -104,6 +107,10 @@ export const useProgressSync = (bookKey: string) => {
   // user's auto-push isn't blocked by a server outage. Re-entry while a
   // pull is in flight or a retry timer is pending is a no-op.
   const pullWithRetry = useCallback(async () => {
+    if (IS_OFFLINE_BUILD) {
+      configPulled.current = true;
+      return;
+    }
     if (configPulled.current) return;
     if (pullInFlight.current) return;
     if (pullRetryTimer.current !== null) return;
@@ -131,6 +138,7 @@ export const useProgressSync = (bookKey: string) => {
   }, [bookKey]);
 
   const syncConfig = async () => {
+    if (IS_OFFLINE_BUILD) return;
     if (!configPulled.current) {
       pullWithRetry();
     } else {
@@ -167,6 +175,7 @@ export const useProgressSync = (bookKey: string) => {
   );
 
   const handleSyncBookProgress = async (event: CustomEvent) => {
+    if (IS_OFFLINE_BUILD) return;
     const { bookKey: syncBookKey } = event.detail;
     if (syncBookKey === bookKey) {
       // Flush any pending debounced push first so the latest local progress
@@ -198,14 +207,14 @@ export const useProgressSync = (bookKey: string) => {
 
   // Push: auto-push progress when progress changes with a debounce
   useEffect(() => {
-    if (!progress?.location || !user) return;
+    if (IS_OFFLINE_BUILD || !progress?.location || !user) return;
     handleAutoSync();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress?.location]);
 
   // Pull: pull progress once when the book is opened, with retry on failure
   useEffect(() => {
-    if (!progress || hasPulledConfigOnce.current) return;
+    if (IS_OFFLINE_BUILD || !progress || hasPulledConfigOnce.current) return;
     hasPulledConfigOnce.current = true;
     pullWithRetry();
     // eslint-disable-next-line react-hooks/exhaustive-deps

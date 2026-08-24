@@ -71,7 +71,7 @@ const TTSChaptersView: React.FC<TTSChaptersViewProps> = ({
               disabled={clearing}
               onClick={() => void clearDownloads()}
             >
-              {_('Clear all')}
+              {_('Clear offline audio')}
             </button>
           )}
           {queueCount > 0 ? (
@@ -90,7 +90,7 @@ const TTSChaptersView: React.FC<TTSChaptersViewProps> = ({
               disabled={!anyIncomplete || clearing}
               onClick={() => void downloadAll()}
             >
-              {_('Download all')}
+              {_('Prepare all offline')}
             </button>
           )}
         </div>
@@ -109,15 +109,18 @@ const TTSChaptersView: React.FC<TTSChaptersViewProps> = ({
             activeSectionIndex < chapter.endSection;
           const subtitle =
             item?.status === 'in_progress'
-              ? _('Downloading {{done}}/{{total}}', { done: item.done, total: item.total })
+              ? _('Preparing offline audio {{done}}/{{total}}', {
+                  done: item.done,
+                  total: item.total,
+                })
               : item?.status === 'pending'
                 ? _('Waiting…')
                 : item?.status === 'failed'
-                  ? _('Download failed')
+                  ? _('Offline preparation failed')
                   : status === 'complete'
-                    ? _('Downloaded')
+                    ? _('Saved offline')
                     : status === 'partial'
-                      ? _('Partly downloaded')
+                      ? _('Partly saved offline')
                       : null;
 
           return (

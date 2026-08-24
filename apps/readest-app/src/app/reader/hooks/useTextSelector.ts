@@ -131,6 +131,18 @@ export const useTextSelector = (
     setSelectionSuppressed({ target: 'menu', suppressed }).catch(() => {});
   };
 
+  // A quick-action/instant-highlight gesture can finish without a native
+  // selectionchange (especially on Android, where the native touch bridge owns
+  // the gesture). Clear the one-shot popup latches and native menu gate before
+  // the next gesture so a later word press is never treated as the tail of the
+  // previous pen action.
+  const resetSelectionInteraction = () => {
+    isUpToPopup.current = false;
+    isPopuped.current = false;
+    pendingTouchSelection.current = false;
+    syncSelectionMenuSuppression(false);
+  };
+
   const guardProgrammaticSelection = () => {
     if (programmaticClearTimer.current) clearTimeout(programmaticClearTimer.current);
     programmaticSelectionRef.current = true;
@@ -520,6 +532,7 @@ export const useTextSelector = (
       stopInstantAnnotating();
       const handled = await handleInstantAnnotationPointerUp(doc, index, ev);
       if (handled === 'editor') {
+        resetSelectionInteraction();
         // The hold committed a word highlight and left the range editor open.
         // Consume the trailing click with the "this release leads to a popup"
         // latch (same as the selection popup flow) — the 200ms isTextSelected
@@ -528,6 +541,7 @@ export const useTextSelector = (
         return;
       }
       if (handled) {
+        resetSelectionInteraction();
         isTextSelected.current = true;
         setTimeout(() => {
           isTextSelected.current = false;
@@ -577,6 +591,7 @@ export const useTextSelector = (
     }
   };
   const handleTouchStart = () => {
+    resetSelectionInteraction();
     isTouchStarted.current = true;
     pendingTouchSelection.current = false;
     gestureInitialRef.current = null;
@@ -794,6 +809,7 @@ export const useTextSelector = (
     handleShowPopup,
     handleUpToPopup,
     handleContextmenu,
+    resetSelectionInteraction,
     applyProgrammaticSelection,
     // The shared corner auto-turn feed/cancel/subscribe, re-exposed so the range
     // editors can drive the same machine from their overlay handle drags.

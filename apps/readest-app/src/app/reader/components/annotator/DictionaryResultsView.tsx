@@ -619,8 +619,11 @@ export const DictionaryResultsBody: React.FC<DictionaryResultsBodyProps> = ({
   );
 
   return (
-    <div className='flex h-full min-h-0 flex-col'>
-      <div className='min-h-0 flex-1 overflow-y-auto overscroll-contain'>
+    <div className='flex min-h-0 flex-1 flex-col'>
+      <div
+        className='min-h-0 flex-1 overflow-y-auto overscroll-contain'
+        style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}
+      >
         {noProvidersAtAll ? (
           <div className='flex h-full flex-col items-center justify-center px-6 text-center'>
             <h1 className='text-base font-bold'>{_('No dictionaries enabled')}</h1>

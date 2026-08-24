@@ -8,6 +8,7 @@ import { eventDispatcher } from '@/utils/event';
 import { debounce } from '@/utils/debounce';
 import { HardcoverClient, HardcoverSyncMapStore } from '@/services/hardcover';
 import { BookNote } from '@/types/book';
+import { IS_OFFLINE_BUILD } from '@/config/offline';
 
 // Hardcover throttles its API hard (≈1 req/1.15s), and the "currently reading"
 // status + reading-session progress it tracks doesn't need second-by-second
@@ -53,6 +54,7 @@ export const useHardcoverSync = (bookKey: string) => {
 
   const pushNotes = useCallback(
     async (options?: PushOptions) => {
+      if (IS_OFFLINE_BUILD) return;
       const silent = options?.silent ?? false;
       const config = getConfig(bookKey);
       const book = getBookData(bookKey)?.book;
@@ -121,6 +123,7 @@ export const useHardcoverSync = (bookKey: string) => {
 
   const pushProgress = useCallback(
     async (options?: PushOptions) => {
+      if (IS_OFFLINE_BUILD) return;
       const silent = options?.silent ?? false;
       const config = getConfig(bookKey);
       const book = getBookData(bookKey)?.book;
@@ -166,6 +169,7 @@ export const useHardcoverSync = (bookKey: string) => {
   const debouncedAutoPushProgress = useMemo(
     () =>
       debounce(() => {
+        if (IS_OFFLINE_BUILD) return;
         const { settings } = useSettingsStore.getState();
         if (!settings.hardcover?.enabled || settings.hardcover?.autoSync !== true) return;
         pushProgress({ silent: true });
@@ -176,6 +180,7 @@ export const useHardcoverSync = (bookKey: string) => {
   const debouncedAutoPushNotes = useMemo(
     () =>
       debounce(() => {
+        if (IS_OFFLINE_BUILD) return;
         const { settings } = useSettingsStore.getState();
         if (!settings.hardcover?.enabled || settings.hardcover?.autoSync !== true) return;
         pushNotes({ silent: true });
@@ -230,6 +235,7 @@ export const useHardcoverSync = (bookKey: string) => {
 
   // Auto-push progress on page turns.
   useEffect(() => {
+    if (IS_OFFLINE_BUILD) return;
     debouncedAutoPushProgress();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress?.location]);
@@ -237,6 +243,7 @@ export const useHardcoverSync = (bookKey: string) => {
   // Auto-push notes when annotations/excerpts change.
   const config = getConfig(bookKey);
   useEffect(() => {
+    if (IS_OFFLINE_BUILD) return;
     debouncedAutoPushNotes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config?.booknotes]);

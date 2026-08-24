@@ -67,6 +67,7 @@ import type { FileSyncBackendKind } from '@/services/sync/file/providerRegistry'
 import { canBackendRun } from '@/services/sync/file/runLibrarySync';
 import SubPageHeader from './SubPageHeader';
 import { BoxedList, NavigationRow, SectionTitle, SettingLabel, Tips } from './primitives';
+import { IS_OFFLINE_BUILD } from '@/config/offline';
 
 type SubPage =
   | 'kosync'
@@ -443,6 +444,27 @@ const IntegrationsPanel: React.FC = () => {
         <SendToReadestForm onBack={() => setSubPage(null)} />
       </div>
     );
+
+  if (IS_OFFLINE_BUILD) {
+    return (
+      <div className='my-4 w-full space-y-6'>
+        <div className='w-full px-4'>
+          <h2 className='mb-1.5 text-lg font-semibold tracking-tight'>{_('Integrations')}</h2>
+          <p className='text-base-content/70 text-sm leading-relaxed'>
+            {_('Online integrations are unavailable in the offline build.')}
+          </p>
+        </div>
+        <div className='w-full px-4'>
+          <Tips>
+            <li>
+              {_('Books, reading progress, notes, dictionaries, and audio stay on this device.')}
+            </li>
+            <li>{_('Use device folders and local sharing controls for direct file access.')}</li>
+          </Tips>
+        </div>
+      </div>
+    );
+  }
 
   const koSyncStatus = settings.kosync?.enabled
     ? settings.kosync.username

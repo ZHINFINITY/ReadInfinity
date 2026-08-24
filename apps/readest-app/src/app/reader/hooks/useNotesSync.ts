@@ -8,6 +8,7 @@ import { SYNC_NOTES_INTERVAL_SEC } from '@/services/constants';
 import { throttle } from '@/utils/throttle';
 import { getXPointerFromCFI, getCFIFromXPointer, XCFI } from '@/utils/xcfi';
 import { getIndexFromCfi } from '@/utils/cfi';
+import { IS_OFFLINE_BUILD } from '@/config/offline';
 
 export const useNotesSync = (bookKey: string) => {
   const { user } = useAuth();
@@ -136,6 +137,7 @@ export const useNotesSync = (bookKey: string) => {
   const handleAutoSync = useCallback(
     throttle(
       () => {
+        if (IS_OFFLINE_BUILD) return;
         const book = getBookData(bookKey)?.book;
         const newNotes = getNewNotes();
         if (newNotes.notes?.length) {
@@ -153,7 +155,7 @@ export const useNotesSync = (bookKey: string) => {
   );
 
   useEffect(() => {
-    if (!config?.location || !user) return;
+    if (IS_OFFLINE_BUILD || !config?.location || !user) return;
     handleAutoSync();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config?.booknotes, handleAutoSync]);

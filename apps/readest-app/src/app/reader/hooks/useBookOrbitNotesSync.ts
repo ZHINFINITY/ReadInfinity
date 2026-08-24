@@ -15,6 +15,7 @@ import { eventDispatcher } from '@/utils/event';
 import { throttle } from '@/utils/throttle';
 import { XCFI, getCFIFromXPointer, getXPointerFromCFI } from '@/utils/xcfi';
 import { useWindowActiveChanged } from './useWindowActiveChanged';
+import { IS_OFFLINE_BUILD } from '@/config/offline';
 
 /**
  * Bidirectional highlight/bookmark sync with a BookOrbit server, mounted
@@ -37,6 +38,7 @@ export const useBookOrbitNotesSync = (bookKey: string) => {
   }
 
   const client = useMemo(() => {
+    if (IS_OFFLINE_BUILD) return null;
     const bookorbit = settings.bookorbit;
     if (
       !bookorbit.enabled ||
@@ -170,6 +172,7 @@ export const useBookOrbitNotesSync = (bookKey: string) => {
   );
 
   const runPass = useCallback(async () => {
+    if (IS_OFFLINE_BUILD) return;
     const store = storeRef.current;
     if (!client || !store) return;
     const { settings } = useSettingsStore.getState();

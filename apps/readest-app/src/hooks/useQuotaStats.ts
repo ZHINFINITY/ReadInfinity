@@ -3,6 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { QuotaType, UserPlan } from '@/types/quota';
 import { getStoragePlanData, getTranslationPlanData, getUserProfilePlan } from '@/utils/access';
 import { setCachedUserPlan } from '@/services/sync/cloudSyncProvider';
+import { IS_OFFLINE_BUILD } from '@/config/offline';
 import { useTranslation } from './useTranslation';
 
 export const useQuotaStats = (briefName = false) => {
@@ -12,7 +13,7 @@ export const useQuotaStats = (briefName = false) => {
   const [userProfilePlan, setUserProfilePlan] = useState<UserPlan | undefined>(undefined);
 
   useEffect(() => {
-    if (!user || !token) return;
+    if (IS_OFFLINE_BUILD || !user || !token) return;
 
     const storagPlan = getStoragePlanData(token);
     const inGB = storagPlan.quota > 1e9;

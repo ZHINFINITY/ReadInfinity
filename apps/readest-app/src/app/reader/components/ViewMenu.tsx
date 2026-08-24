@@ -1,15 +1,12 @@
 import clsx from 'clsx';
 import React, { useEffect } from 'react';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { BiMoon, BiSun } from 'react-icons/bi';
 import { PiGear } from 'react-icons/pi';
 import { TbSunMoon } from 'react-icons/tb';
-import { MdZoomOut, MdZoomIn, MdCheck, MdInfoOutline, MdOutlineSensors } from 'react-icons/md';
+import { MdZoomOut, MdZoomIn, MdCheck, MdOutlineSensors } from 'react-icons/md';
 import { MdRemove, MdAdd, MdContrast } from 'react-icons/md';
-import { MdSync, MdSyncProblem } from 'react-icons/md';
 import { IoMdExpand } from 'react-icons/io';
-import { IoShareOutline } from 'react-icons/io5';
 import { TbArrowAutofitWidth } from 'react-icons/tb';
 import { TbColumns1, TbColumns2 } from 'react-icons/tb';
 import { TbCarouselVertical, TbCarouselHorizontal } from 'react-icons/tb';
@@ -23,21 +20,17 @@ import {
   CONTRAST_STEP,
 } from '@/services/constants';
 import { useEnv } from '@/context/EnvContext';
-import { useAuth } from '@/context/AuthContext';
 import { useThemeStore } from '@/store/themeStore';
 import { useReaderStore } from '@/store/readerStore';
 import { useBookDataStore } from '@/store/bookDataStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { getStyles } from '@/utils/style';
-import { navigateToLogin } from '@/utils/nav';
 import { getScrollGapAttr } from '@/utils/webtoon';
 import { applyPageTurnAttributes } from '@/app/reader/hooks/useCapturedTurn';
 import { eventDispatcher } from '@/utils/event';
 import { getMaxInlineSize } from '@/utils/config';
 import { nextThemeMode } from '@/utils/ambientLight';
-import dayjs from 'dayjs';
-import { clampSyncTimeForDisplay } from '@/utils/time';
 import { saveViewSettings } from '@/helpers/settings';
 import { tauriHandleToggleFullScreen } from '@/utils/window';
 import MenuItem from '@/components/MenuItem';
@@ -46,23 +39,15 @@ import Menu from '@/components/Menu';
 interface ViewMenuProps {
   bookKey: string;
   setIsDropdownOpen?: (open: boolean) => void;
-  onShowMetaHashDialog?: () => void;
 }
 
-const ViewMenu: React.FC<ViewMenuProps> = ({
-  bookKey,
-  setIsDropdownOpen,
-  onShowMetaHashDialog,
-}) => {
+const ViewMenu: React.FC<ViewMenuProps> = ({ bookKey, setIsDropdownOpen }) => {
   const _ = useTranslation();
-  const router = useRouter();
-  const { user } = useAuth();
   const { envConfig, appService } = useEnv();
-  const { getConfig, getBookData } = useBookDataStore();
+  const { getBookData } = useBookDataStore();
   const { setSettingsDialogOpen, setSettingsDialogBookKey } = useSettingsStore();
-  const { getView, getViewSettings, getViewState, getProgress, setViewSettings, recreateViewer } =
+  const { getView, getViewSettings, getViewState, setViewSettings, recreateViewer } =
     useReaderStore();
-  const config = getConfig(bookKey)!;
   const bookData = getBookData(bookKey)!;
   const viewSettings = getViewSettings(bookKey)!;
   const viewState = getViewState(bookKey);
@@ -118,15 +103,6 @@ const ViewMenu: React.FC<ViewMenuProps> = ({
     setIsDropdownOpen?.(false);
   };
 
-  const handleSync = () => {
-    if (!user) {
-      navigateToLogin(router);
-      setIsDropdownOpen?.(false);
-    } else {
-      eventDispatcher.dispatch('sync-book-progress', { bookKey });
-    }
-  };
-
   const handleStartRSVP = () => {
     setIsDropdownOpen?.(false);
     eventDispatcher.dispatch('rsvp-start', { bookKey });
@@ -135,16 +111,6 @@ const ViewMenu: React.FC<ViewMenuProps> = ({
   const toggleAutoScroll = () => {
     setIsDropdownOpen?.(false);
     eventDispatcher.dispatch('autoscroll-toggle', { bookKey });
-  };
-
-  const handleShare = () => {
-    setIsDropdownOpen?.(false);
-    if (!bookData?.book) return;
-    const progress = getProgress(bookKey);
-    eventDispatcher.dispatch('show-share-dialog', {
-      book: bookData.book,
-      cfi: progress?.location ?? null,
-    });
   };
 
   useEffect(() => {
@@ -267,13 +233,6 @@ const ViewMenu: React.FC<ViewMenuProps> = ({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rtlSpread]);
-
-  const lastSyncTime = Math.max(
-    config?.lastSyncedAtConfig || 0,
-    config?.lastSyncedAtNotes || 0,
-    config?.lastPushedAtConfig || 0,
-    config?.lastPushedAtNotes || 0,
-  );
 
   return (
     <Menu
@@ -490,36 +449,6 @@ const ViewMenu: React.FC<ViewMenuProps> = ({
 
       <hr aria-hidden='true' className='border-base-300 my-1' />
 
-      <MenuItem
-        label={
-          !user
-            ? _('Sign in to Sync')
-            : lastSyncTime
-              ? _('Synced {{time}}', {
-                  time: dayjs(clampSyncTimeForDisplay(lastSyncTime)).fromNow(),
-                })
-              : _('Never synced')
-        }
-        Icon={user ? MdSync : MdSyncProblem}
-        iconClassName={user && viewState?.syncing ? 'animate-reverse-spin' : ''}
-        onClick={handleSync}
-        siblings={
-          <button
-            aria-label={_('Sync Info')}
-            title={_('Sync Info')}
-            className='hover:bg-base-300 text-base-content/70 mx-1 rounded-md px-2'
-            onClick={() => {
-              setIsDropdownOpen?.(false);
-              onShowMetaHashDialog?.();
-            }}
-          >
-            <MdInfoOutline size={16} />
-          </button>
-        }
-      />
-
-      <hr aria-hidden='true' className='border-base-300 my-1' />
-
       {appService?.hasWindow && <MenuItem label={_('Fullscreen')} onClick={handleFullScreen} />}
       <MenuItem
         label={
@@ -558,8 +487,6 @@ const ViewMenu: React.FC<ViewMenuProps> = ({
       />
 
       <hr aria-hidden='true' className='border-base-300 my-1' />
-
-      <MenuItem label={_('Share Book')} Icon={IoShareOutline} onClick={handleShare} />
     </Menu>
   );
 };
