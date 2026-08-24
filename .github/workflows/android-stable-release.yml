@@ -97,6 +97,10 @@ jobs:
           set -euo pipefail
           cmp -s src-tauri/icons/icon.png public/icon.png
           pnpm tauri icon src-tauri/icons/icon.png
+          python3 scripts/prepare_android_launcher_icons.py \
+            --source src-tauri/icons/icon.png \
+            --res-dir src-tauri/gen/android/app/src/main/res
+          test -s src-tauri/gen/android/app/src/main/res/drawable/ic_launcher_background.xml
           test -s src-tauri/gen/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
           test -s src-tauri/gen/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png
 
@@ -275,20 +279,16 @@ jobs:
         working-directory: apps/readest-app
         run: |
           set -euo pipefail
-          release_title="Read∞ ${{ steps.apk.outputs.version }} — all Android ABIs"
+          release_title="Read∞ ${{ steps.apk.outputs.version }}"
           release_notes="Stable Read∞ Android release. Package: com.infinity.readz. Version: ${{ steps.apk.outputs.version }}. All Android ABI variants included: arm64-v8a, armeabi-v7a, x86, and x86_64. Books and dictionaries are read directly from selected device folders; local metadata remains on-device. This build uses the supplied Read∞ icon and requires a second Android Back press within two seconds before exiting. Credits and license information are available in the repository README."
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release delete "$RELEASE_TAG" --yes --cleanup-tag
           fi
           gh release create "$RELEASE_TAG" \
             "${{ steps.apk.outputs.arm64_asset }}" \
-            "${{ steps.apk.outputs.arm64_asset }}.sha256" \
             "${{ steps.apk.outputs.armv7_asset }}" \
-            "${{ steps.apk.outputs.armv7_asset }}.sha256" \
             "${{ steps.apk.outputs.x86_asset }}" \
-            "${{ steps.apk.outputs.x86_asset }}.sha256" \
             "${{ steps.apk.outputs.x86_64_asset }}" \
-            "${{ steps.apk.outputs.x86_64_asset }}.sha256" \
             --title "$release_title" \
             --target "$GITHUB_SHA" \
             --notes "$release_notes"

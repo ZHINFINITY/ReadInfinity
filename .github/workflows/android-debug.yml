@@ -89,6 +89,10 @@ jobs:
           set -euo pipefail
           cmp -s src-tauri/icons/icon.png public/icon.png
           pnpm tauri icon src-tauri/icons/icon.png
+          python3 scripts/prepare_android_launcher_icons.py \
+            --source src-tauri/icons/icon.png \
+            --res-dir src-tauri/gen/android/app/src/main/res
+          test -s src-tauri/gen/android/app/src/main/res/drawable/ic_launcher_background.xml
 
       - name: Configure Android MainActivity
         run: |
