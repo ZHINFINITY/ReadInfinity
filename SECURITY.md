@@ -1,142 +1,71 @@
 # Security Policy
 
-## Threat Model
+## Scope and threat model
 
-### Overview
+Read∞ is an offline-first ebook reader for Android and desktop platforms. It processes user-selected ebook and dictionary files, stores reading metadata locally, and provides native filesystem access only through the application’s scoped platform integrations. Core reading does not require an account, cloud library, remote synchronization, telemetry, or a backend service.
 
-Readest is a cross-platform e-reader (macOS, Windows, Linux, Android, iOS, Web) built on Next.js and Tauri. It processes user-supplied ebook files, syncs data to the cloud, integrates with external services (OPDS catalogs, KOReader, DeepL, Yandex), and handles user authentication.
+The primary security boundary is the user’s device. Book and dictionary files are untrusted input and may be malformed or intentionally hostile. The application also includes native components, third-party parsing and rendering libraries, WebView content, build dependencies, and platform filesystem integrations.
 
-### Assets
+## Protected assets
 
-| Asset                          | Description                                                                          |
-| ------------------------------ | ------------------------------------------------------------------------------------ |
-| Ebook files                    | User-uploaded EPUB, MOBI, PDF, and other formats stored locally and in cloud storage |
-| Reading progress & annotations | Highlights, bookmarks, and notes synced across devices                               |
-| User credentials               | Authentication tokens and session data for cloud sync                                |
-| User preferences & settings    | Reading preferences, custom fonts, theme configurations                              |
-| External API keys              | Translation service credentials (DeepL, Yandex) configured by users                  |
+| Asset | Protection goal |
+|---|---|
+| User-selected ebook and dictionary files | Prevent unintended modification, deletion, disclosure, or execution outside the reader’s supported content model |
+| Reading progress, annotations, notes, covers, and preferences | Keep local metadata private and consistent |
+| Selected-folder permissions and paths | Use only the folders the user grants or selects |
+| Native bridge and filesystem operations | Limit platform actions to explicit application capabilities and validated inputs |
+| Release signing material | Keep private signing keys and passwords outside the repository and CI logs |
+| Dependencies and build outputs | Detect tampering and known vulnerabilities before release |
 
-### Threat Actors
+## Important mitigations
 
-| Actor                   | Motivation                                                 |
-| ----------------------- | ---------------------------------------------------------- |
-| Malicious ebook author  | Craft a malformed file to exploit the parser or renderer   |
-| Network attacker (MitM) | Intercept sync traffic to steal credentials or inject data |
-| Malicious OPDS server   | Serve crafted catalog responses to exploit the client      |
-| Compromised dependency  | Supply chain attack via npm or Cargo ecosystem             |
-| Unauthorized user       | Access another user's synced library or annotations        |
+### Untrusted book content
 
-### Attack Surfaces & Mitigations
+Book files are treated as untrusted content. Rendering is isolated through the application’s WebView and reader boundaries, and the application does not treat ebook markup as native application code. Parser, renderer, archive, and content-security issues should be reported even when they require a specially crafted local file.
 
-#### 1. Ebook File Parsing
+### Local filesystem access
 
-- **Risk:** Malformed EPUB/MOBI/PDF files could trigger parser bugs, path traversal, or script injection via embedded HTML/JS.
-- **Mitigations:** Ebook content is rendered in a sandboxed iframe. External script execution is blocked. File parsing is isolated from the main process.
+Native file access is initiated by an explicit user-selected folder, file picker, or operating-system open-with action. Read∞ records source paths and local metadata; it does not need to copy user books into a remote service. A report involving path traversal, unintended folder access, destructive file operations, or access outside a granted scope is security-sensitive.
 
-#### 2. Cloud Sync & Authentication
+### Offline data handling
 
-- **Risk:** Credential theft, session hijacking, or unauthorized access to another user's library data.
-- **Mitigations:** All sync traffic uses HTTPS/TLS. Authentication tokens are stored securely (OS keychain/secure storage). Server-side authorization ensures users can only access their own data.
+The offline application does not depend on login or cloud synchronization for its core library. Reports should still cover accidental network transmission, unexpected remote requests, exposed local metadata, unsafe URL handling, or a path that allows untrusted book content to reach privileged native operations.
 
-#### 3. OPDS / External Catalog Integration
+### Native and WebView boundaries
 
-- **Risk:** A malicious OPDS server could serve crafted XML to exploit the parser, or redirect downloads to malicious files.
-- **Mitigations:** OPDS responses are parsed defensively. Users explicitly add catalog sources. Downloaded files are treated as untrusted user content.
+Native commands and Android integrations are reviewed as privileged boundaries. Reports involving arbitrary command execution, unsafe IPC, WebView escape, exported activities, permission escalation, or bypasses of user-selected-folder restrictions should include a minimal reproduction whenever possible.
 
-#### 4. Rendered HTML/JS in Ebook Content
+### Dependency and release security
 
-- **Risk:** Embedded JavaScript in EPUB files could attempt XSS or data exfiltration.
-- **Mitigations:** Book content is rendered in a sandboxed iframe with scripting restrictions. Navigation outside the book context is blocked.
+JavaScript and Rust dependencies are pinned through the repository lockfiles. Release APKs are built in GitHub Actions, signed with repository secrets, and verified for package identity, signature, and ABI contents before publication. Signing passwords and private key material must never be committed or printed in logs.
 
-#### 5. Supply Chain
+## Out of scope
 
-- **Risk:** Compromised npm or Cargo packages could introduce malicious code.
-- **Mitigations:** Dependencies are pinned via `pnpm-lock.yaml` and `Cargo.lock`. Dependabot and GitHub's dependency review are enabled for automated vulnerability detection.
+The following are generally outside the project’s direct control unless the application introduces a specific unsafe interaction with them:
 
-#### 6. Desktop Native Code (Tauri)
+- Vulnerabilities in an unmodified operating system, Android WebView, browser, or device firmware.
+- Physical access attacks against an unlocked device.
+- Malicious files opened by a user when no application boundary is bypassed.
+- Availability or security incidents in unrelated third-party services.
+- Feature requests or ordinary bugs without a confidentiality, integrity, privilege, or code-execution impact.
 
-- **Risk:** Tauri IPC commands could be abused by malicious web content to access the filesystem or OS APIs.
-- **Mitigations:** Tauri's allowlist restricts which IPC commands are exposed. File system access is scoped to the application data directory.
+## Supported versions
 
-### Out of Scope
+Security fixes are prioritized for the latest public release series.
 
-- Vulnerabilities in user's operating system or browser outside of Readest's control
-- Physical access attacks to a user's device
-- Issues in third-party services (DeepL, Yandex, Calibre) themselves
+| Version | Supported |
+|---|---|
+| `1.0.x` | Yes |
+| Older versions | Best effort only; update to the latest release when possible |
 
-## Supported Versions
+## Reporting a vulnerability
 
-Readest does not currently maintain separate release channels. Security updates are provided only for the latest release series.
+Please report suspected vulnerabilities privately. Do not open a public issue or discussion for security-sensitive details. Use [GitHub’s private vulnerability reporting for this repository](https://github.com/ZHINFINITY/readinfinity/security/advisories/new), or contact the repository maintainer privately through the [ZHINFINITY GitHub profile](https://github.com/ZHINFINITY).
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.10.x  | :white_check_mark: |
-| < 0.10  | :x:                |
+Include the affected version, platform and ABI where relevant, a clear security impact, reproduction steps or a minimal proof of concept, and any suggested mitigation. Please redact personal files, private paths, signing material, and unrelated sensitive information.
 
-## Reporting a Vulnerability
+We aim to acknowledge reports within three business days. We may request additional reproduction details or validation. Please keep vulnerability details private until a fix and disclosure plan have been agreed with the maintainer.
 
-Please report suspected vulnerabilities privately. Do not open a public GitHub
-issue or discussion for security-sensitive reports.
+## Incident response
 
-Use GitHub's private vulnerability reporting for this repository:
-
-<https://github.com/readest/readest/security/advisories/new>
-
-When submitting a report, include:
-
-- A clear description of the issue and the affected component
-- Steps to reproduce, proof of concept, or a minimal test case
-- The versions, platforms, or environments you tested
-- Any suggested remediation or mitigating details, if available
-
-What to expect after you report:
-
-- We will aim to acknowledge receipt within 3 business days.
-- We may contact you for additional details, reproduction steps, or validation.
-- If the report is accepted, we will work on a fix and coordinate disclosure.
-- If the report is declined, we will explain why, for example if the behavior is
-  expected, unsupported, or not reproducible.
-
-Please keep vulnerability details private until a fix is available and the
-maintainers have approved disclosure.
-
-## Incident Response Plan
-
-When a security vulnerability is confirmed, we follow this process:
-
-### 1. Triage (Day 1–2)
-
-- Assign a severity level (Critical / High / Medium / Low) based on impact and exploitability.
-- Identify affected versions, components, and users.
-- Assign an owner responsible for coordinating the response.
-
-### 2. Containment (Day 1–3)
-
-- Assess whether an immediate mitigation or workaround can be published.
-- Limit further exposure where possible (e.g., disable affected features, update dependencies).
-
-### 3. Remediation (Day 3–14, depending on severity)
-
-- Develop and internally review a fix.
-- Validate the fix does not introduce regressions.
-- Prepare a patched release and update changelog.
-
-### 4. Disclosure & Release
-
-- Coordinate disclosure timing with the reporter.
-- Publish a GitHub Security Advisory with CVE if applicable.
-- Release the patched version and notify users via release notes.
-
-### 5. Post-Incident Review
-
-- Document the root cause, timeline, and resolution.
-- Update processes or controls to prevent recurrence.
-
-### Severity Definitions
-
-| Severity | Description                                                           |
-| -------- | --------------------------------------------------------------------- |
-| Critical | Remote code execution, full data compromise, or authentication bypass |
-| High     | Significant data exposure, privilege escalation, or denial of service |
-| Medium   | Limited data exposure or functionality disruption                     |
-| Low      | Minor issues with minimal security impact                             |
+For a confirmed vulnerability, maintainers will triage severity and affected versions, develop and test a mitigation, publish a patched release when appropriate, and document the resolution in the repository or release notes. Disclosure timing will be coordinated with the reporter whenever practical.

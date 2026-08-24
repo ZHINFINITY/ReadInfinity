@@ -1,316 +1,102 @@
 <div align="center">
-  <a href="https://readest.com?utm_source=github&utm_medium=referral&utm_campaign=readme" target="_blank">
-    <img src="https://github.com/readest/readest/blob/main/apps/readest-app/src-tauri/icons/icon.png?raw=true" alt="Readest Logo" width="20%" />
-  </a>
-  <h1>Readest</h1>
-  <br>
-
-[Readest][link-website] is an open-source ebook reader designed for immersive and deep reading experiences. Built as a modern rewrite of [Foliate](https://github.com/johnfactotum/foliate), it leverages [Next.js 16](https://github.com/vercel/next.js) and [Tauri v2](https://github.com/tauri-apps/tauri) to deliver a smooth, cross-platform experience across macOS, Windows, Linux, Android, iOS, and the Web.
-
-[![Website][badge-website]][link-website]
-[![Web App][badge-web-app]][link-web-readest]
-[![OS][badge-platforms]][link-website]
-<br>
-[![Discord][badge-discord]][link-discord]
-[![Reddit][badge-reddit]][link-reddit]
-[![AGPL Licence][badge-license]](LICENSE)
-[![Language Coverage][badge-language-coverage]][link-locales]
-[![Donate][badge-donate]][link-donate]
-[![Latest release][badge-release]][link-gh-releases]
-[![Last commit][badge-last-commit]][link-gh-commits]
-[![Commits][badge-commit-activity]][link-gh-pulse]
-[![][badge-hellogithub]][link-hellogithub]
-[![Ask DeepWiki][badge-deepwiki]][link-deepwiki]
-
+  <img src="./apps/readest-app/src-tauri/icons/icon.png" alt="Read∞ icon" width="160" />
+  <h1>Read∞</h1>
+  <p><strong>A private, offline-first ebook reader for Android and desktop platforms.</strong></p>
+  <p>Open books and dictionaries directly from folders you choose. Your source files stay where you put them.</p>
+  <p>
+    <a href="https://github.com/ZHINFINITY/readinfinity/releases/tag/v1.0.0">Latest release</a> ·
+    <a href="https://github.com/ZHINFINITY/readinfinity/issues">Issues</a> ·
+    <a href="https://github.com/ZHINFINITY/readinfinity/pulls">Pull requests</a>
+  </p>
 </div>
 
-> **ReadInfinity offline build:** This repository is an unofficial offline distribution of [Readest](https://github.com/readest/readest). Authentication, Readest Cloud, third-party sync, server API routes, URL/catalog/feed imports, telemetry, and online account features are disabled. Native builds open EPUB, PDF, MOBI, AZW3, FB2, CBZ, TXT, and Markdown files directly from device storage and retain local source paths instead of creating managed book copies. Browser builds still require the browser’s local file picker because web browsers do not grant arbitrary filesystem access without user permission.
->
-> The original Readest source and notices are retained under the **GNU Affero General Public License version 3 or later**. This is not an official Readest release; see [`OFFLINE_BUILD.md`](OFFLINE_BUILD.md) for implementation notes and release requirements.
+## Overview
 
-<p align="center">
-  <a href="#features">Features</a> •
-  <a href="#planned-features">Planned Features</a> •
-  <a href="#screenshots">Screenshots</a> •
-  <a href="#downloads">Downloads</a> •
-  <a href="#documentation">Documentation</a> •
-  <a href="#getting-started">Getting Started</a> •
-  <a href="#troubleshooting">Troubleshooting</a> •
-  <a href="#support">Support</a> •
-  <a href="#license">License</a>
-</p>
+Read∞ is an offline-first reading application for people who want their books, dictionaries, annotations, and reading progress to remain on their own devices. The Android package is `com.infinity.readz`, and the current public release is `v1.0.0`.
 
-<div align="center">
-  <a href="https://readest.com" target="_blank">
-    <img src="./data/screenshots/landing_all_platforms.png" alt="Readest Banner" width="100%" />
-  </a>
-</div>
+The native application opens supported files directly from user-selected device folders. It does not require an account, cloud library, online synchronization, telemetry, or a server connection for its core reading features. Local metadata, covers, notes, annotations, and reading progress are stored on the device; the original book and dictionary files remain in their selected folders.
 
 ## Features
 
-<div align="left">✅ Implemented</div>
+| Feature | Description | Status |
+|---|---|---|
+| Multi-format reading | EPUB, PDF, MOBI, KF8/AZW3, FB2, CBZ, TXT, and Markdown | Available |
+| Direct folder reading | Choose one or more book folders and scan their subfolders without copying book files into app storage | Available |
+| Local dictionaries | Recursively load supported StarDict, MDict, dictd, Slob, and Babylon dictionaries from a selected folder | Available |
+| Search and navigation | Search within books and navigate chapters, pages, footnotes, and references | Available |
+| Notes and annotations | Highlights, bookmarks, notes, reading progress, and local metadata | Available |
+| Themes and layout | AMOLED black mode, dark mode, fonts, spacing, margins, and page or scroll layouts | Available |
+| Text-to-speech | Local text-to-speech where supported by the device | Available |
+| Read-along media | Play compatible local EPUB 3 media overlays and DRM-free narration files | Available |
+| Accessibility | Keyboard navigation and support for platform screen readers | Available |
+| Online accounts and cloud sync | Not included in the offline application experience | Disabled |
+| Remote catalogs and online integrations | Not required for local reading and disabled in offline mode | Disabled |
 
-| **Feature**                                | **Description**                                                                                                        | **Status** |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ---------- |
-| **Multi-Format Support**                   | Support EPUB, PDF, MOBI, KF8 (AZW3), FB2, CBZ, TXT, MD (Markdown)                                                                      | ✅         |
-| **Scroll/Page View Modes**                 | Switch between scrolling or paginated reading modes.                                                                   | ✅         |
-| **Full-Text Search**                       | Search inside a book or across the current library shelf to find relevant sections.                                    | ✅         |
-| **Annotations and Highlighting**           | Add highlights, bookmarks, and notes to enhance your reading experience and use instant mode for quicker interactions. | ✅         |
-| **Dictionary/Wikipedia Lookup**            | Look up words with built-in sources or import local packs, including Yomitan ZIP/RDICT, from Settings → Custom Dictionaries. | ✅         |
-| **[Parallel Read][link-parallel-read]**    | Read two books or documents simultaneously in a split-screen view.                                                     | ✅         |
-| **Customize Font and Layout**              | Adjust font, layout, theme mode, and theme colors for a personalized experience.                                       | ✅         |
-| **Code Syntax Highlighting**               | Read software manuals with rich coloring of code examples.                                                             | ✅         |
-| **File Association and Open With**         | Quickly open files in Readest in your file browser with one-click.                                                     | ✅         |
-| **Library Management**                     | Organize, sort, and manage your entire ebook library.                                                                  | ✅         |
-| **OPDS/Calibre Integration**               | Disabled in ReadInfinity offline mode.                                                                                 | —          |
-| **Translate with DeepL and Yandex**        | Disabled in ReadInfinity offline mode; local dictionaries remain available.                                            | —          |
-| **Text-to-Speech (TTS) Support**           | Enjoy smooth, multilingual narration—even within a single book.                                                        | ✅         |
-| [**Read-Along Narration**][link-readalong] | Play embedded EPUB 3 Media Overlays with timed highlighting, or pair a reflowable EPUB locally with DRM-free MP3, M4A, or M4B narration. [Storyteller][link-storyteller] remains an option for generating phrase-aligned EPUBs. | ✅         |
-| **Sync across Platforms**                  | Disabled in ReadInfinity offline mode; reading data stays on the device.                                              | —          |
-| [**Sync with Koreader**][link-kosync-wiki] | Disabled in ReadInfinity offline mode.                                                                                 | —          |
-| **Accessibility**                          | Provides full keyboard navigation and support for screen readers such as VoiceOver, TalkBack, NVDA, and Orca.         | ✅         |
-| **Visual & Focus Aids**                    | Reading ruler, paragraph-by-paragraph reading mode, and speed reading features.                                        | ✅         |
+## Android download
 
-## Planned Features
+The public release page contains separate signed APKs for all four Android ABIs:
 
-<div align="left">🛠 Building</div>
-<div align="left">🔄 Planned</div>
+| ABI | Download |
+|---|---|
+| `arm64-v8a` | [Read∞ Android release](https://github.com/ZHINFINITY/readinfinity/releases/tag/v1.0.0) |
+| `armeabi-v7a` | [Read∞ Android release](https://github.com/ZHINFINITY/readinfinity/releases/tag/v1.0.0) |
+| `x86` | [Read∞ Android release](https://github.com/ZHINFINITY/readinfinity/releases/tag/v1.0.0) |
+| `x86_64` | [Read∞ Android release](https://github.com/ZHINFINITY/readinfinity/releases/tag/v1.0.0) |
 
-| **Feature**                     | **Description**                                                            | **Priority** |
-| ------------------------------- | -------------------------------------------------------------------------- | ------------ |
-| **AI-Powered Summarization**    | Generate summaries of books or chapters using AI for quick insights.       | 🛠           |
-| **Advanced Reading Stats**      | Track reading time, pages read, and more for detailed insights.            | 🛠           |
-| **Audiobook Support**           | Extend functionality to play and manage audiobooks.                        | 🔄           |
-| **Handwriting Annotations**     | Add support for handwriting annotations using a pen on compatible devices. | 🔄           |
+Select the APK matching the device architecture. The release page also provides SHA-256 checksum files.
 
-Stay tuned for continuous improvements and updates! Contributions and suggestions are always welcome—let's build the ultimate reading experience together. 😊
+## How direct folder reading works
 
-## Screenshots
+On Android, select a books folder when prompted or from the library controls. Read∞ recursively discovers supported book files and records their original paths. A scan runs only when requested; returning to the application does not repeatedly scan the device. You can add or remove selected folders and choose supported formats or minimum file sizes.
 
-![Annotations](./data/screenshots/annotations.png)
+Dictionary folders work in the same way. Choose a dictionary folder, including any parent folder containing subfolders, and Read∞ registers supported dictionaries from their original locations. The application stores only the local dictionary index and folder access information.
 
-![TTS](./data/screenshots/tts_speak_aloud.png)
+## Privacy and offline behavior
 
-![DeepL](./data/screenshots/deepl.png)
+Read∞ does not require login or cloud synchronization for local reading. Online account, transfer, catalog, feed, and remote-integration surfaces are not part of the offline library workflow. Core reading, annotations, dictionaries, themes, search, backups, and local text-to-speech remain available without a backend service.
 
-![Footnote](./data/screenshots/footnote_popover.png)
+For implementation details, see [`OFFLINE_BUILD.md`](OFFLINE_BUILD.md).
 
-![Wikipedia](./data/screenshots/wikipedia_vertical.png)
+## Building from source
 
-![Theming Dark Mode](./data/screenshots/theming_dark_mode.png)
+Install the workspace dependencies and run the application-specific checks:
 
----
-
-## Downloads
-
-### Mobile Apps
-
-<div align="center">
-  <a href="https://apps.apple.com/app/id6738622779">
-    <img alt="Download on the App Store" src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" style="height: 50px;" /></a>&nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://play.google.com/store/apps/details?id=com.bilingify.readest">
-    <img alt="Get it on Google Play" src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" style="height: 50px;" /></a>
-</div>
-
-### Platform-Specific Downloads
-
-- macOS / iOS / iPadOS : Search and install **Readest** on the [App Store][link-appstore], _also_ available on TestFlight for beta test (send your Apple ID to <readestapp@gmail.com> to request access).
-- Windows / Linux / Android: Visit and download **Readest** at [https://readest.com][link-website] or the [Releases on GitHub][link-gh-releases].
-- Linux users can also install [Readest on Flathub][link-flathub].
-- Web: Visit and use **Readest for Web** at [https://web.readest.com][link-web-readest].
-
-#### Nix
-
-> [!NOTE]
-> The Nix package supports `x86_64-linux` only. nix-darwin is not supported.
-
-Try it without installing. `--accept-flake-config` opts in to the project's
-binary cache; without it Nix builds the whole Rust/Tauri stack from source.
-
-```sh
-nix run --accept-flake-config github:readest/readest
+```bash
+pnpm install --frozen-lockfile
+cd apps/readest-app
+pnpm exec tsc --noEmit -p tsconfig.json
 ```
 
-To install it, add the input to your `flake.nix`:
+Android builds require the Android SDK, Java 17, Rust, the Android Rust targets, and the Tauri CLI. The public release workflow is [`.github/workflows/android-stable-release.yml`](.github/workflows/android-stable-release.yml).
 
-```nix
-# Due to a limitation in how Nix fetches submodules, a regular GitHub input type will fail to evaluate.
-inputs.readest = {
-  url = "https://github.com/readest/readest.git";
-  type = "git";
-  submodules = true;
-};
-```
+## Credits
 
-then in `configuration.nix` add the package and the cache. The cache is needed
-here as well because a flake input's own `nixConfig` does not apply to your
-system build:
+Read∞ is maintained by **ZHINFINITY** and benefits from the work of the open-source projects and communities below:
 
-```nix
-environment.systemPackages = [
-  inputs.readest.packages.${pkgs.stdenv.hostPlatform.system}.default
-];
+| Project or resource | Contribution | License or reference |
+|---|---|---|
+| [Tauri](https://tauri.app/) | Native desktop and Android application shell | MIT |
+| [Next.js](https://nextjs.org/) | Application framework and build tooling | MIT |
+| [React](https://react.dev/) | User-interface framework | MIT |
+| [Foliate JavaScript libraries](https://github.com/johnfactotum/foliate-js) | Book parsing and reading components | MIT |
+| [PDF.js](https://mozilla.github.io/pdf.js/) | PDF rendering | Apache License 2.0 |
+| [zip.js](https://github.com/gildas-lormeau/zip.js) | Archive access | BSD-3-Clause |
+| [fflate](https://github.com/101arrowz/fflate) | Compression utilities | MIT |
+| [daisyUI](https://daisyui.com/) | Interface components | MIT |
+| [Marked](https://marked.js.org/) | Markdown rendering | MIT |
+| [React Icons](https://react-icons.github.io/react-icons/) | Interface icon set | Open-source licenses |
+| [Google Fonts](https://fonts.google.com/) and bundled font projects | Reading typography and multilingual support | Respective licenses |
 
-nix.settings = {
-  substituters = [ "https://readest.cachix.org" ];
-  trusted-public-keys = [
-    "readest.cachix.org-1:KvKAePcZZCZB8ytFIAOGdgN3VRdmFHGRMHqMVckbt5c="
-  ];
-};
-```
+The project also incorporates contributions from the wider open-source community. Please retain the repository license, copyright notices, dependency licenses, and attribution files when redistributing source or binaries.
 
-## Documentation
+## Contributing
 
-Guides, tutorials, and FAQs for installing and using Readest live in the official documentation:
-
-📖 **[https://readest.com/docs][link-docs]**
-
-Contributor references live in the repository: [architecture](./apps/readest-app/docs/architecture.md),
-[code layout](./apps/readest-app/docs/code-layout.md), and
-[testing](./apps/readest-app/docs/testing.md).
-
-## Building from Source
-
-To build Readest from the latest commit, see [Getting Started](./CONTRIBUTING.md#getting-started).
-
-## Troubleshooting
-
-### 1. Readest Won’t Launch on Windows (Missing Edge WebView2 Runtime)
-
-**Symptom**
-
-- When you double-click readest.exe, nothing happens. No window appears, and Task Manager does not show the process.
-- This can affect both the standard installer and the portable version.
-
-**Cause**
-
-- Microsoft Edge WebView2 Runtime is either missing, outdated, or improperly installed on your system. Readest depends on WebView2 to render the interface on Windows.
-
-**How to Fix**
-
-1. Check if WebView2 is installed
-   - Open “Add or Remove Programs” (a.k.a. Apps & features) on Windows. Look for “Microsoft Edge WebView2 Runtime.”
-2. Install or Update WebView2
-   - Download the WebView2 Runtime directly from Microsoft: [link](https://developer.microsoft.com/en-us/microsoft-edge/webview2?form=MA13LH).
-   - If you prefer an offline installer, download the offline package and run it as an Administrator.
-3. Re-run Readest
-   - After installing/updating WebView2, launch readest.exe again.
-   - If you still encounter problems, reboot your PC and try again.
-
-**Additional Tips**
-
-- If reinstalling once doesn’t work, uninstall Edge WebView2 completely, then reinstall it with Administrator privileges.
-- Verify your Windows installation has the latest updates from Microsoft.
-
-**Still Stuck?**
-
-- See Issue [readest/readest#358](https://github.com/readest/readest/issues/358) for further details, or head over to our [Discord][link-discord] server and open a support discussion with detailed logs of your environment and the steps you’ve taken.
-
-### 2. AppImage Launches but Only Shows a Taskbar Icon
-
-On some Arch Linux systems—especially those using Wayland—the Readest AppImage may briefly show an icon in the taskbar and then exit without opening a window.
-
-You might see logs such as:
-
-```
-Could not create default EGL display: EGL_BAD_PARAMETER. Aborting...
-```
-
-This behavior is usually caused by compatibility issues between the bundled AppImage libraries and the system’s EGL / Wayland environment.
-
-**Workaround 1: Launch with LD_PRELOAD (recommended)**
-
-You can preload the system Wayland client library before launching the AppImage:
-
-```
-LD_PRELOAD=/usr/lib/libwayland-client.so /path/to/Readest.AppImage
-```
-
-This workaround has been confirmed to resolve the issue on affected systems.
-
-**Workaround 2: Use the Flatpak Version**
-
-If you prefer a more reliable out-of-the-box experience on Arch Linux, consider using the [Flatpak build on Flathub][link-flathub] instead. The Flatpak runtime helps avoid system library mismatches and tends to behave more consistently across different Wayland and X11 setups.
-
-## Contributors
-
-Readest is open-source, and contributions are welcome! Feel free to open issues, suggest features, or submit pull requests. Please **review our [contributing guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before you start**. We also welcome you to join our [Discord][link-discord] community for either support or contributing guidance.
-
-<a href="https://github.com/readest/readest/graphs/contributors">
-  <p align="left">
-    <img width="500" src="https://contrib.rocks/image?repo=readest/readest" alt="A table of avatars from the project's contributors" />
-  </p>
-</a>
-
-## Support
-
-If Readest has been useful to you, consider supporting its development at [donate.readest.com](https://donate.readest.com), where you'll find all available donation methods, including GitHub Sponsors, card payments, and crypto. Your contribution helps us fix bugs faster, improve performance, and keep building great features.
-
-### Sponsors
-
-<p align="center">
-  <a title="Browser testing via TestMu AI" href="https://www.testmuai.com/?utm_medium=sponsor&utm_source=readest" target="_blank">
-    <img src="https://raw.githubusercontent.com/readest/readest/refs/heads/main/data/sponsors/testmu-ai-logo.png" style="vertical-align: middle;" width="250" />
-  </a>
-</p>
+Bug reports, feature requests, documentation improvements, and pull requests are welcome. Please read [`CONTRIBUTING.md`](CONTRIBUTING.md), [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md), and [`SECURITY.md`](SECURITY.md) before participating.
 
 ## License
 
-Readest is free software: you can redistribute it and/or modify it under the terms of the [GNU Affero General Public License](https://www.gnu.org/licenses/agpl-3.0.html) as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. See the [LICENSE](LICENSE) file for details.
+Read∞ is distributed under the **GNU Affero General Public License version 3 or later**. See [`LICENSE`](LICENSE) for the complete license text and the repository for applicable third-party notices.
 
-The following libraries and frameworks are used in this software:
-
-- [foliate-js](https://github.com/johnfactotum/foliate-js), which is MIT licensed.
-- [zip.js](https://github.com/gildas-lormeau/zip.js), which is licensed under the BSD-3-Clause license.
-- [fflate](https://github.com/101arrowz/fflate), which is MIT licensed.
-- [PDF.js](https://github.com/mozilla/pdf.js), which is licensed under Apache License 2.0.
-- [daisyUI](https://github.com/saadeghi/daisyui), which is MIT licensed.
-- [marked](https://github.com/markedjs/marked), which is MIT licensed.
-- [next.js](https://github.com/vercel/next.js), which is MIT licensed.
-- [react-icons](https://github.com/react-icons/react-icons), which has various open-source licenses.
-- [react](https://github.com/facebook/react), which is MIT licensed.
-- [tauri](https://github.com/tauri-apps/tauri), which is MIT licensed.
-
-The following fonts are utilized in this software, either bundled within the application or provided through web fonts:
-
-[Bitter](https://fonts.google.com/specimen/Bitter), [Fira Code](https://fonts.google.com/specimen/Fira+Code), [Inter](https://fonts.google.com/specimen/Inter), [Literata](https://fonts.google.com/specimen/Literata), [Merriweather](https://fonts.google.com/specimen/Merriweather), [Noto Sans](https://fonts.google.com/specimen/Noto+Sans), [Roboto](https://fonts.google.com/specimen/Roboto), [LXGW WenKai](https://github.com/lxgw/LxgwWenKai), [MiSans](https://hyperos.mi.com/font/en/), [Source Han](https://github.com/adobe-fonts/source-han-sans/), [WenQuanYi Micro Hei](http://wenq.org/wqy2/)
-
-We would also like to thank the [Web Chinese Fonts Plan](https://chinese-font.netlify.app) for offering open-source tools that enable the use of Chinese fonts on the web.
-
----
-
-<div align="center" style="color: gray;">Happy reading with Readest!</div>
-
-[badge-website]: https://img.shields.io/badge/website-readest.com-orange
-[badge-web-app]: https://img.shields.io/badge/read%20online-web.readest.com-orange
-[badge-license]: https://img.shields.io/badge/license-AGPL--3.0-teal
-[badge-release]: https://img.shields.io/github/v/release/readest/readest?color=green
-[badge-platforms]: https://img.shields.io/badge/platforms-macOS%2C%20Windows%2C%20Linux%2C%20Android%2C%20iOS%2C%20Web%2C%20PWA-green
-[badge-last-commit]: https://img.shields.io/github/last-commit/readest/readest?color=blue
-[badge-commit-activity]: https://img.shields.io/github/commit-activity/m/readest/readest?color=blue
-[badge-discord]: https://img.shields.io/discord/1314226120886976544?color=5865F2&label=discord&labelColor=black&logo=discord&logoColor=white&style=flat-square
-[badge-hellogithub]: https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=8a5b6ade2aee461a8bd94e59200682a7&claim_uid=eRLUbPOy2qZtDgw&theme=small
-[badge-donate]: https://donate.readest.com/badge.svg
-[badge-deepwiki]: https://deepwiki.com/badge.svg
-[badge-reddit]: https://img.shields.io/reddit/subreddit-subscribers/readest?style=flat&logo=reddit&color=F37E41
-[badge-language-coverage]: https://img.shields.io/badge/coverage-53%25%20population%20🌍-green
-[link-donate]: https://donate.readest.com/?tickers=btc%2Ceth%2Csol%2Cusdc
-[link-appstore]: https://apps.apple.com/app/apple-store/id6738622779?pt=127463130&ct=github&mt=8
-[link-website]: https://readest.com?utm_source=github&utm_medium=referral&utm_campaign=readme
-[link-flathub]: https://flathub.org/en/apps/com.bilingify.readest
-[link-web-readest]: https://web.readest.com
-[link-docs]: https://readest.com/docs
-[link-gh-releases]: https://github.com/readest/readest/releases
-[link-gh-commits]: https://github.com/readest/readest/commits/main
-[link-gh-pulse]: https://github.com/readest/readest/pulse
-[link-gh-wiki]: https://github.com/readest/readest/wiki
-[link-discord]: https://discord.gg/gntyVNk3BJ
-[link-parallel-read]: https://readest.com/#parallel-read
-[link-koreader]: https://github.com/koreader/koreader
-[link-hellogithub]: https://hellogithub.com/repository/8a5b6ade2aee461a8bd94e59200682a7
-[link-deepwiki]: https://deepwiki.com/readest/readest
-[link-locales]: https://github.com/readest/readest/tree/main/apps/readest-app/public/locales
-[link-kosync-wiki]: https://github.com/readest/readest/wiki/Sync-with-Koreader-devices
-[link-readalong]: https://github.com/readest/readest/blob/main/apps/readest-app/docs/read-along-narration.md
-[link-storyteller]: https://storyteller-platform.dev/
-[link-reddit]: https://reddit.com/r/readest/
+<div align="center">
+  <p>Read privately. Read directly. Read∞.</p>
+</div>

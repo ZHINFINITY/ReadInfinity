@@ -103,15 +103,31 @@ jobs:
           grep -F 'namespace = "com.infinity.readz"' "$app_gradle"
           grep -F 'android:label="Read∞"' "$manifest"
 
-      - name: Forward Android picker activity results
+      - name: Configure Android MainActivity
         run: |
+          set -euo pipefail
           activity_file="$(find apps/readest-app/src-tauri/gen/android/app/src/main/java -name MainActivity.kt -print -quit)"
           test -n "$activity_file"
-          if ! grep -q 'NativeBridgePlugin.deliverActivityResult' "$activity_file"; then
-            sed -i '/^package /a import android.content.Intent\nimport com.readest.native_bridge.NativeBridgePlugin' "$activity_file"
+          if ! grep -q 'ReadInfinityExitGuard' "$activity_file"; then
+            sed -i '/^package /a import android.content.Intent\nimport android.widget.Toast\nimport com.readest.native_bridge.NativeBridgePlugin' "$activity_file"
             last_line="$(awk 'NF { line = NR } END { print line }' "$activity_file")"
             sed -i "${last_line}d" "$activity_file"
             cat >> "$activity_file" <<'KOTLIN'
+              // ReadInfinityExitGuard: require a second system Back press before exit.
+              private var lastBackPressAt = 0L
+              private val exitPressWindowMs = 2000L
+
+              @Suppress("DEPRECATION")
+              override fun onBackPressed() {
+                  val now = System.currentTimeMillis()
+                  if (now - lastBackPressAt <= exitPressWindowMs) {
+                      super.onBackPressed()
+                  } else {
+                      lastBackPressAt = now
+                      Toast.makeText(this, "Press back again to exit", Toast.LENGTH_SHORT).show()
+                  }
+              }
+
               override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
                   super.onActivityResult(requestCode, resultCode, data)
                   NativeBridgePlugin.deliverActivityResult(requestCode, resultCode, data)
@@ -119,7 +135,10 @@ jobs:
           }
           KOTLIN
           fi
-          tail -n 12 "$activity_file"
+          grep -F 'ReadInfinityExitGuard' "$activity_file"
+          grep -F 'Press back again to exit' "$activity_file"
+          grep -F 'NativeBridgePlugin.deliverActivityResult' "$activity_file"
+          tail -n 24 "$activity_file"
 
       - name: Select FOSS Android flavor
         run: |
@@ -248,6 +267,7 @@ jobs:
         run: |
           set -euo pipefail
           release_title="Read∞ ${{ steps.apk.outputs.version }} — all Android ABIs"
+          release_notes="Stable Read∞ Android release. Package: com.infinity.readz. Version: ${{ steps.apk.outputs.version }}. All Android ABI variants included: arm64-v8a, armeabi-v7a, x86, and x86_64. Books and dictionaries are read directly from selected device folders; local metadata remains on-device. This build uses the supplied Read∞ icon and requires a second Android Back press within two seconds before exiting. Credits and license information are available in the repository README."
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" \
               "${{ steps.apk.outputs.arm64_asset }}" \
@@ -259,6 +279,7 @@ jobs:
               "${{ steps.apk.outputs.x86_64_asset }}" \
               "${{ steps.apk.outputs.x86_64_asset }}.sha256" \
               --clobber
+            gh release edit "$RELEASE_TAG" --title "$release_title" --notes "$release_notes"
           else
             gh release create "$RELEASE_TAG" \
               "${{ steps.apk.outputs.arm64_asset }}" \
@@ -271,7 +292,7 @@ jobs:
               "${{ steps.apk.outputs.x86_64_asset }}.sha256" \
               --title "$release_title" \
               --target "$GITHUB_SHA" \
-              --notes "Stable Read∞ Android release. Package: com.infinity.readz. Version: ${{ steps.apk.outputs.version }}. All Android ABI variants included: arm64-v8a, armeabi-v7a, x86, and x86_64. Books and dictionaries are read directly from selected device folders; local metadata remains on-device."
+              --notes "$release_notes"
           fi
 
       - name: Attest arm64-v8a APK
