@@ -68,10 +68,10 @@ const getInitialThemeMode = (): ThemeMode => {
 
 const getInitialThemeColor = (): string => {
   if (typeof window !== 'undefined' && localStorage) {
-    const defaultColor = window.__READEST_IS_EINK ? 'contrast' : 'default';
+    const defaultColor = window.__READEST_IS_EINK ? 'contrast' : 'amoled';
     return localStorage.getItem('themeColor') || defaultColor;
   }
-  return 'default';
+  return 'amoled';
 };
 
 const getInitialAmbientIsDarkMode = (systemIsDarkMode: boolean): boolean => {

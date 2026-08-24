@@ -30,7 +30,7 @@ const ThemeColorSelector: React.FC<ThemeColorSelectorProps> = ({
   return (
     <div>
       <SectionTitle className='mb-2'>{_('Theme Color')}</SectionTitle>
-      <div className='grid grid-cols-3 gap-4'>
+      <div className='grid min-w-0 grid-cols-3 gap-3 sm:gap-4'>
         {themes.map(({ name, label, colors, isCustomizable }) => (
           <button
             key={name}
@@ -47,13 +47,13 @@ const ThemeColorSelector: React.FC<ThemeColorSelectorProps> = ({
             // background, light or dark. The transparent border on inactive
             // cards reserves the same 2px so selecting/deselecting doesn't
             // shift the grid.
-            className={`relative flex cursor-pointer flex-col items-center justify-end rounded-lg border-2 p-3 shadow-md ${
+            className={`relative flex min-w-0 cursor-pointer flex-col items-center justify-end overflow-hidden rounded-lg border-2 p-3 text-center shadow-md ${
               themeColor === name ? 'border-current' : 'border-transparent'
             }`}
             style={{
               backgroundColor: isDarkMode ? colors.dark['base-100'] : colors.light['base-100'],
               color: isDarkMode ? colors.dark['base-content'] : colors.light['base-content'],
-              minHeight: '80px',
+              minHeight: '88px',
             }}
           >
             <input
@@ -66,7 +66,9 @@ const ThemeColorSelector: React.FC<ThemeColorSelectorProps> = ({
               className='hidden'
             />
             <span className='max-w-full truncate text-lg font-bold'>Aa</span>
-            <span className='max-w-full truncate font-semibold'>{_(label)}</span>
+            <span className='max-w-full truncate whitespace-nowrap text-sm font-semibold'>
+              {_(label)}
+            </span>
             {isCustomizable && themeColor === name && (
               <button onClick={() => onEditTheme(name)}>
                 <BiPencil size={iconSize16} className='absolute right-2 top-2' />
@@ -75,11 +77,13 @@ const ThemeColorSelector: React.FC<ThemeColorSelectorProps> = ({
           </button>
         ))}
         <button
-          className='relative flex cursor-pointer flex-col gap-1 items-center justify-end rounded-lg border border-dashed p-3 shadow-md'
+          className='relative flex min-w-0 cursor-pointer flex-col items-center justify-end gap-1 overflow-hidden rounded-lg border border-dashed p-3 text-center shadow-md'
           onClick={onCreateTheme}
         >
           <PiPlus size={iconSize24} />
-          <span className='max-w-full truncate font-semibold'>{_('Custom')}</span>
+          <span className='max-w-full truncate whitespace-nowrap text-sm font-semibold'>
+            {_('Custom')}
+          </span>
         </button>
       </div>
     </div>

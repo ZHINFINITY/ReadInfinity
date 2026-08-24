@@ -260,6 +260,14 @@ const TTSPlayerSheet = ({
         ? timerLabel
         : _('Sleep Timer');
 
+  const handleBack = () => {
+    if (view !== 'main') {
+      setView('main');
+      return;
+    }
+    onClose();
+  };
+
   // The main view carries no header label (the content speaks for itself and
   // vertical space is tight); sub-views keep the back button and their title.
   // Desktop hides the drag handle and has no swipe-to-dismiss, so the main
@@ -312,6 +320,7 @@ const TTSPlayerSheet = ({
       header={header}
       boxClassName='sm:!h-auto sm:!max-h-[85%] sm:!w-[420px] sm:!min-w-0'
       contentClassName='!px-4 sm:!px-4 mt-[-4px]'
+      onBack={handleBack}
       onClose={onClose}
     >
       {view === 'main' && (

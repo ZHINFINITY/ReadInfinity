@@ -345,6 +345,7 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
       <Dialog
         isOpen
         title={_('Open Books from Folder')}
+        onBack={() => setView('import')}
         onClose={onCancel}
         boxClassName={DIALOG_BOX_CLASS}
         contentClassName='!px-6 !py-2'
@@ -374,6 +375,7 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
     <Dialog
       isOpen
       title={_('Open Books from Folder')}
+      onBack={onCancel}
       onClose={onCancel}
       boxClassName={DIALOG_BOX_CLASS}
       contentClassName='!px-6 !py-2'
@@ -585,7 +587,11 @@ const ImportFromFolderDialog: React.FC<ImportFromFolderDialogProps> = ({
           <BoxedList>
             <NavigationRow
               title={_('Books Folders')}
-              status={watchedFolders.map((f) => getFilename(f.path) || f.path).join(', ')}
+              status={
+                watchedFolders.length === 1
+                  ? getFilename(watchedFolders[0]!.path) || _('1 folder')
+                  : _('{{count}} folders', { count: watchedFolders.length })
+              }
               onClick={() => setView('watched')}
             />
           </BoxedList>

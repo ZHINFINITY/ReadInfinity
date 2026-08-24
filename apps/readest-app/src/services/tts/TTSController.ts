@@ -378,14 +378,20 @@ export class TTSController extends EventTarget {
 
   async init() {
     const availableClients = [];
-    if (await this.ttsEdgeClient.init()) {
-      availableClients.push(this.ttsEdgeClient);
-    }
-    if (this.ttsNativeClient && (await this.ttsNativeClient.init())) {
+    // Android has a local system TTS plugin. Prefer it immediately and avoid
+    // probing network/Web Speech engines before the first utterance: an offline
+    // device can otherwise wait on a WebSocket or voice-list timeout and look
+    // frozen even though native speech is available.
+    const nativeReady = !!this.ttsNativeClient && (await this.ttsNativeClient.init());
+    const shouldProbeEdge = !this.appService?.isAndroidApp;
+    if (nativeReady && this.ttsNativeClient) {
       availableClients.push(this.ttsNativeClient);
       this.ttsNativeVoices = await this.ttsNativeClient.getAllVoices();
     }
-    if (await this.ttsWebClient.init()) {
+    if (!nativeReady && shouldProbeEdge && (await this.ttsEdgeClient.init())) {
+      availableClients.push(this.ttsEdgeClient);
+    }
+    if (!nativeReady && (await this.ttsWebClient.init())) {
       availableClients.push(this.ttsWebClient);
     }
     this.ttsClient = availableClients[0] || this.ttsWebClient;
@@ -398,8 +404,8 @@ export class TTSController extends EventTarget {
         this.ttsClient = preferredClient;
       }
     }
-    this.ttsWebVoices = await this.ttsWebClient.getAllVoices();
-    this.ttsEdgeVoices = await this.ttsEdgeClient.getAllVoices();
+    this.ttsWebVoices = nativeReady ? [] : await this.ttsWebClient.getAllVoices();
+    this.ttsEdgeVoices = nativeReady ? [] : await this.ttsEdgeClient.getAllVoices();
 
     // A book that ships its own narration should be read by its narrator, not
     // synthesized — that is the whole point of having the recording. The
@@ -1492,8 +1498,9 @@ export class TTSController extends EventTarget {
   }
 
   async getVoices(lang: string) {
-    const ttsWebVoices = await this.ttsWebClient.getVoices(lang);
-    const ttsEdgeVoices = await this.ttsEdgeClient.getVoices(lang);
+    const nativeReady = !!this.ttsNativeClient?.initialized;
+    const ttsWebVoices = nativeReady ? [] : await this.ttsWebClient.getVoices(lang);
+    const ttsEdgeVoices = nativeReady ? [] : await this.ttsEdgeClient.getVoices(lang);
     const ttsNativeVoices = (await this.ttsNativeClient?.getVoices(lang)) ?? [];
     // The book's own narrator leads the list when there is one: it is the best
     // voice available for that book by a wide margin.

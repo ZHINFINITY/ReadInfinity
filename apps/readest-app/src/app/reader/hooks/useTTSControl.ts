@@ -74,6 +74,7 @@ export const useTTSControl = ({ bookKey, onRequestHidePanel }: UseTTSControlProp
   const previousSectionLabelRef = useRef<string | undefined>(undefined);
   const ttsControllerRef = useRef<TTSController | null>(null);
   const isStartingTTSRef = useRef(false);
+  const ttsStartTokenRef = useRef(0);
   // Last broadcast playback state, so a follower engaging mid-session can be
   // replayed the current state on demand (see handleTTSSyncRequest).
   const playbackStateRef = useRef<'playing' | 'paused' | 'stopped'>('stopped');
@@ -781,6 +782,10 @@ export const useTTSControl = ({ bookKey, onRequestHidePanel }: UseTTSControlProp
   // handleStop (defined before handleTTSSpeak/handleTTSStop which reference it)
   const handleStop = useCallback(
     async (bookKey: string) => {
+      // Invalidate any controller initialization that is still awaiting a
+      // plugin/network response. Its continuation must not revive the UI after
+      // the user has stopped TTS or started a replacement session.
+      ttsStartTokenRef.current += 1;
       const ttsController = ttsControllerRef.current;
       // Reset all UI/session state up front — including the TTS toggle
       // (ttsEnabled) and indicator that color the TTS icon — so disabling TTS
@@ -821,6 +826,7 @@ export const useTTSControl = ({ bookKey, onRequestHidePanel }: UseTTSControlProp
     // end up creating two TTSController instances that speak simultaneously.
     if (isStartingTTSRef.current) return;
     isStartingTTSRef.current = true;
+    const startToken = ++ttsStartTokenRef.current;
 
     try {
       const view = getView(bookKey);
@@ -929,7 +935,9 @@ export const useTTSControl = ({ bookKey, onRequestHidePanel }: UseTTSControlProp
         // own narration or a synthesized voice.
         ttsController.useNarration = viewSettings.ttsUseNarration ?? true;
         await ttsController.init();
+        if (startToken !== ttsStartTokenRef.current) return;
         await ttsController.initViewTTS(ttsFromIndex);
+        if (startToken !== ttsStartTokenRef.current) return;
         ttsController.updateHighlightOptions(
           getTTSHighlightOptions(
             viewSettings.ttsHighlightOptions,
@@ -974,13 +982,17 @@ export const useTTSControl = ({ bookKey, onRequestHidePanel }: UseTTSControlProp
         setTtsClientsInitialized(true);
         setTTSEnabled(bookKey, true);
       } catch (error) {
-        setShowIndicator(false);
-        setIsPlaying(false);
-        eventDispatcher.dispatch('toast', {
-          message: _('TTS not supported for this document'),
-          type: 'error',
-        });
-        console.error(error);
+        // Only the current start may tear down the session. A stop/replacement
+        // can invalidate this continuation while init is awaiting native TTS;
+        // in that case the newer operation already owns cleanup.
+        if (startToken === ttsStartTokenRef.current) {
+          await handleStop(bookKey);
+          eventDispatcher.dispatch('toast', {
+            message: _('TTS not supported for this document'),
+            type: 'error',
+          });
+          console.error(error);
+        }
       }
     } finally {
       isStartingTTSRef.current = false;
@@ -990,7 +1002,7 @@ export const useTTSControl = ({ bookKey, onRequestHidePanel }: UseTTSControlProp
   const handleTTSStop = async (event: CustomEvent) => {
     const { bookKey: ttsBookKey } = event.detail;
     if (bookKey !== ttsBookKey) return;
-    if (ttsControllerRef.current) {
+    if (ttsControllerRef.current || isStartingTTSRef.current) {
       await handleStop(bookKey);
     } else {
       await ttsSessionManager.stopBook(getBookHashFromKey(bookKey), 'user');

@@ -42,7 +42,7 @@ const NavigationRow: React.FC<NavigationRowProps> = ({
       disabled={disabled}
       data-setting-id={dataSettingId}
       className={clsx(
-        'group flex w-full items-center gap-3 py-4 pe-4 text-left',
+        'group flex w-full items-start gap-3 py-4 pe-4 text-left',
         'transition-colors duration-150',
         'focus-visible:ring-base-content/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset',
         disabled && 'cursor-not-allowed opacity-50',
@@ -55,10 +55,14 @@ const NavigationRow: React.FC<NavigationRowProps> = ({
         </span>
       )}
       <div className='flex min-w-0 flex-1 flex-col gap-0.5'>
-        <SettingLabel>{title}</SettingLabel>
-        {status && <span className='text-base-content/65 truncate text-[0.85em]'>{status}</span>}
+        <SettingLabel className='min-w-0'>{title}</SettingLabel>
+        {status && (
+          <span className='text-base-content/65 line-clamp-2 min-w-0 break-words text-[0.85em]'>
+            {status}
+          </span>
+        )}
       </div>
-      <MdChevronRight className='text-base-content/50 h-5 w-5 flex-shrink-0' />
+      <MdChevronRight className='text-base-content/50 mt-1 h-5 w-5 flex-shrink-0' />
     </button>
   );
 };

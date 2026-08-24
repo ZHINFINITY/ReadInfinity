@@ -80,15 +80,15 @@ jobs:
       - name: Prepare local reader vendors
         run: pnpm --filter @readest/readest-app setup-vendors
 
+      - name: Initialize Android project
+        run: pnpm --filter @readest/readest-app tauri android init
+
       - name: Regenerate native launcher icons
         working-directory: apps/readest-app
         run: |
           set -euo pipefail
           cmp -s src-tauri/icons/icon.png public/icon.png
           pnpm tauri icon src-tauri/icons/icon.png
-
-      - name: Initialize Android project
-        run: pnpm --filter @readest/readest-app tauri android init
 
       - name: Configure Android MainActivity
         run: |
@@ -143,6 +143,10 @@ jobs:
         run: |
           apk_path="$(find apps/readest-app/src-tauri/gen/android -type f -name 'app-universal-debug.apk' | head -n 1)"
           test -n "$apk_path"
+          badging="$($ANDROID_HOME/build-tools/35.0.0/aapt dump badging "$apk_path")"
+          printf '%s\n' "$badging"
+          grep -F 'com.infinity.readz' <<< "$badging"
+          grep -F 'Read∞' <<< "$badging"
           unzip -l "$apk_path" | grep -q 'lib/arm64-v8a/'
           if unzip -l "$apk_path" | grep -Eq 'lib/(armeabi-v7a|x86|x86_64)/'; then
             echo 'Unexpected non-arm64 native library found in APK'

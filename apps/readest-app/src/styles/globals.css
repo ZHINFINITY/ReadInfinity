@@ -748,7 +748,17 @@ input[type='range'].slider-input {
  * selectors; `::part(dict-content)` (exposed on the body in mdictProvider) is
  * the only hook that crosses the boundary. */
 [data-dict-content] {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-wrap: anywhere;
   font-size: calc(var(--dict-font-scale, 1) * 1em);
+}
+
+[data-dict-content] img,
+[data-dict-content] table,
+[data-dict-content] iframe,
+[data-dict-content] video {
+  max-width: 100%;
 }
 
 [data-dict-content] .text-xs {

@@ -51,9 +51,12 @@ const BooknoteView: React.FC<{
   const { getProgress } = useReaderStore();
   const { setActiveBooknoteType, setBooknoteResults, isSearchBarVisible, setSearchBarVisible } =
     useSidebarStore();
-  const config = getConfig(bookKey)!;
+  const config = getConfig(bookKey);
   const progress = getProgress(bookKey);
-  const allNotes = config.booknotes ?? [];
+  // The sidebar can render one frame while its book key is switching from the
+  // library/reader route. Treat that frame as empty rather than dereferencing
+  // an absent config and losing the Notes view entirely.
+  const allNotes = config?.booknotes ?? [];
 
   const [filterKind, setFilterKind] = useState<AnnotationFilterKind>('all');
   const [searchInput, setSearchInput] = useState('');

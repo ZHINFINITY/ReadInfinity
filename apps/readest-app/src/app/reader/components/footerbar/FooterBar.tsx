@@ -31,7 +31,8 @@ const FooterBar: React.FC<FooterBarProps> = ({
   const { getConfig, setConfig, getBookData } = useBookDataStore();
   const { hoveredBookKey, setHoveredBookKey, bottomBarTab, setBottomBarTab } = useReaderStore();
   const { getView, getViewState, getProgress, getViewSettings } = useReaderStore();
-  const { isSideBarVisible, isSideBarPinned, setSideBarVisible } = useSidebarStore();
+  const { isSideBarVisible, isSideBarPinned, setSideBarVisible, setSideBarBookKey } =
+    useSidebarStore();
   const { acquireBackKeyInterception, releaseBackKeyInterception } = useDeviceControlStore();
 
   const view = getView(bookKey);
@@ -110,12 +111,14 @@ const FooterBar: React.FC<FooterBarProps> = ({
         handleSpeakText();
       } else if (tab === 'toc') {
         setHoveredBookKey('');
+        setSideBarBookKey(bookKey);
         if (config?.viewSettings) {
           setConfig(bookKey, { viewSettings: { ...config.viewSettings, sideBarTab: 'toc' } });
         }
         setSideBarVisible(true);
       } else if (tab === 'note') {
         setHoveredBookKey('');
+        setSideBarBookKey(bookKey);
         setSideBarVisible(true);
         if (config?.viewSettings) {
           setConfig(bookKey, {
@@ -132,6 +135,7 @@ const FooterBar: React.FC<FooterBarProps> = ({
       setConfig,
       setBottomBarTab,
       setSideBarVisible,
+      setSideBarBookKey,
       setHoveredBookKey,
       handleSpeakText,
     ],

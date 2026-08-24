@@ -1,9 +1,5 @@
 import { useEffect, useState } from 'react';
 import type { TTSPlayerStyle } from '@/services/tts/types';
-import { useReaderStore } from '@/store/readerStore';
-
-// How long the full card lingers after the toolbar goes away.
-const LINGER_MS = 5000;
 
 /**
  * Whether the TTS mini player should be on screen (#5310).
@@ -31,18 +27,16 @@ export const useMiniPlayerAutoHide = (
   playerStyle: TTSPlayerStyle,
   mounted: boolean,
 ) => {
-  const { hoveredBookKey } = useReaderStore();
   const [visible, setVisible] = useState(true);
 
+  // The mini-player is the persistent recovery/control surface for TTS on
+  // mobile. Hiding it after a toolbar timeout made a delayed native-TTS start
+  // look like a failed session and left users with no way to resume or stop.
+  // The full player sheet still replaces it while open; closing the sheet
+  // remounts this card and keeps it visible until the session ends.
   useEffect(() => {
-    if (!mounted || playerStyle === 'minimal' || hoveredBookKey === bookKey) {
-      setVisible(true);
-      return;
-    }
     setVisible(true);
-    const timeout = setTimeout(() => setVisible(false), LINGER_MS);
-    return () => clearTimeout(timeout);
-  }, [mounted, playerStyle, hoveredBookKey, bookKey]);
+  }, [mounted, playerStyle, bookKey]);
 
   return visible;
 };

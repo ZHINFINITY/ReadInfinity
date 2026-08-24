@@ -38,6 +38,8 @@ interface DialogProps {
    * native scrolling is fine.
    */
   useOverlayScroll?: boolean;
+  /** Handle Android Back before dismissing the dialog; useful for nested views. */
+  onBack?: () => void;
   onClose: () => void;
 }
 
@@ -54,6 +56,7 @@ const Dialog: React.FC<DialogProps> = ({
   boxClassName,
   contentClassName,
   useOverlayScroll = false,
+  onBack,
   onClose,
 }) => {
   const _ = useTranslation();
@@ -70,7 +73,11 @@ const Dialog: React.FC<DialogProps> = ({
   const handleKeyDown = (event: KeyboardEvent | CustomEvent) => {
     if (event instanceof CustomEvent) {
       if (event.detail.keyName === 'Back') {
-        onClose();
+        if (onBack) {
+          onBack();
+        } else {
+          onClose();
+        }
         return true;
       }
     } else {

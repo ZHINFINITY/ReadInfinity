@@ -24,6 +24,7 @@ import type {
 } from '@/services/dictionaries/types';
 
 const isTauri = isTauriAppPlatform();
+const DICTIONARY_LOOKUP_TIMEOUT_MS = 8000;
 
 interface CardState {
   state: 'loading' | 'loaded' | 'empty' | 'unsupported' | 'error';
@@ -247,7 +248,17 @@ export function useDictionaryResults({
       const run = async () => {
         let outcome: DictionaryLookupOutcome;
         try {
-          if (provider.init) await provider.init();
+          if (provider.init) {
+            await Promise.race([
+              provider.init(),
+              new Promise<never>((_, reject) =>
+                setTimeout(
+                  () => reject(new Error('Dictionary initialization timed out')),
+                  DICTIONARY_LOOKUP_TIMEOUT_MS,
+                ),
+              ),
+            ]);
+          }
           const container = containerRefs.current.get(provider.id);
           if (!container) {
             outcome = { ok: false, reason: 'error', message: 'no container' };
@@ -262,15 +273,23 @@ export function useDictionaryResults({
             outcome = { ok: false, reason: 'empty' };
             for (const candidate of buildLookupCandidates(currentWord, langCode)) {
               container.replaceChildren();
-              outcome = await provider.lookup(candidate, {
-                lang: langCode,
-                signal: controller.signal,
-                container,
-                onNavigate: pushWord,
-                isDarkMode,
-                bg: themeCode.bg,
-                fg: themeCode.fg,
-              });
+              outcome = await Promise.race([
+                provider.lookup(candidate, {
+                  lang: langCode,
+                  signal: controller.signal,
+                  container,
+                  onNavigate: pushWord,
+                  isDarkMode,
+                  bg: themeCode.bg,
+                  fg: themeCode.fg,
+                }),
+                new Promise<never>((_, reject) =>
+                  setTimeout(
+                    () => reject(new Error('Dictionary lookup timed out')),
+                    DICTIONARY_LOOKUP_TIMEOUT_MS,
+                  ),
+                ),
+              ]);
               if (controller.signal.aborted) return;
               if (outcome.ok || outcome.reason !== 'empty') break;
             }
@@ -310,15 +329,12 @@ export function useDictionaryResults({
     themeCode.fg,
   ]);
 
-  // Visible cards = providers that are still loading or finished with a
-  // result. Empty/unsupported/error cards are removed entirely.
-  const visibleDefinitionProviders = definitionProviders.filter((p) => {
-    const card = cards[p.id];
-    if (!card) return true;
-    // A new query must remount containers hidden by the previous empty result
-    // before the lookup effect asks providers to render into them.
-    return card.loadKey !== loadKey || card.state === 'loading' || card.state === 'loaded';
-  });
+  // Keep every enabled provider visible. Empty, unsupported, and failed
+  // providers previously disappeared from the popup, which made a dictionary
+  // look like it was missing or stuck while the settings list still showed it.
+  // Rendering an explicit status also gives the user a useful result for local
+  // dictionaries whose format cannot answer the selected word.
+  const visibleDefinitionProviders = definitionProviders;
 
   const resolveWebSearchUrl = useCallback(
     (id: string): string | undefined => {
@@ -527,6 +543,15 @@ export const DictionaryResultsBody: React.FC<DictionaryResultsBodyProps> = ({
                       'line-clamp-4 max-h-40 overflow-hidden [-webkit-box-orient:vertical] [display:-webkit-box]',
                   )}
                 />
+                {!isLoading && card?.state !== 'loaded' && (
+                  <div className='bg-base-200/40 mb-2 rounded px-3 py-2 text-sm'>
+                    {card?.state === 'empty'
+                      ? _('No definition found')
+                      : card?.state === 'unsupported'
+                        ? _('Dictionary format not supported')
+                        : _('Dictionary unavailable')}
+                  </div>
+                )}
                 {!isLoading && (
                   <div className='border-base-content/10 -me-4 mt-2 border-b pb-2'>
                     <span className='not-eink:opacity-60 text-xs'>{sourceLabel}</span>

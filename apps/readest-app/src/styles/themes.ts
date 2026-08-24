@@ -208,7 +208,7 @@ export const themes = [
   },
   {
     name: 'amoled',
-    label: _('AMOLED Black'),
+    label: _('Amoled'),
     colors: {
       // Keep the light variant usable when the theme mode is switched to light,
       // while the dark variant uses true black for OLED pixel-off backgrounds.

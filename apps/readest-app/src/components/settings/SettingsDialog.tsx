@@ -58,6 +58,7 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   const {
     setFontPanelView,
     setSettingsDialogOpen,
+    isSettingsDialogOpen,
     activeSettingsItemId,
     setActiveSettingsItemId,
     requestedPanel,
@@ -123,6 +124,8 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
     return 'Font' as SettingsPanelType;
   });
 
+  const panelHistoryRef = useRef<SettingsPanelType[]>([activePanel]);
+
   // Clear the deep-link request after the initial render has consumed it,
   // so the next dialog open doesn't stick on the same panel. Effect runs
   // once on mount; subsequent callers must call setRequestedPanel before
@@ -133,9 +136,26 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   }, []);
 
   const handleSetActivePanel = (tab: SettingsPanelType) => {
+    if (panelHistoryRef.current[panelHistoryRef.current.length - 1] !== tab) {
+      panelHistoryRef.current = [...panelHistoryRef.current, tab];
+    }
     setActivePanel(tab);
     setFontPanelView('main-fonts');
     localStorage.setItem('lastConfigPanel', tab);
+  };
+
+  const handleBack = () => {
+    if (panelHistoryRef.current.length > 1) {
+      panelHistoryRef.current = panelHistoryRef.current.slice(0, -1);
+      const previousPanel = panelHistoryRef.current[panelHistoryRef.current.length - 1];
+      if (previousPanel) {
+        setActivePanel(previousPanel);
+        setFontPanelView('main-fonts');
+        localStorage.setItem('lastConfigPanel', previousPanel);
+      }
+      return;
+    }
+    handleClose();
   };
 
   // sync localStorage and fontPanelView when activePanel changes
@@ -178,6 +198,12 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
     setSettingsDialogOpen(false);
   };
 
+  useEffect(() => {
+    if (isSettingsDialogOpen) {
+      panelHistoryRef.current = [activePanel];
+    }
+  }, [isSettingsDialogOpen]);
+
   // handle activeSettingsItemId: switch to correct panel and scroll to item
   useEffect(() => {
     if (!activeSettingsItemId) return;
@@ -205,7 +231,7 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
         targetPanel !== activePanel
       ) {
         // eslint-disable-next-line react-hooks/set-state-in-effect -- panel switch based on external navigation is intended
-        setActivePanel(targetPanel);
+        handleSetActivePanel(targetPanel);
       }
     }
 
@@ -342,6 +368,7 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
   return (
     <Dialog
       isOpen={true}
+      onBack={handleBack}
       onClose={handleClose}
       // Settings sits in the overlay z-index scale (see ModalPortal.tsx) above
       // the RSVP immersive overlay (z-100) so dictionary management opened from
@@ -365,7 +392,7 @@ const SettingsDialog: React.FC<{ bookKey: string }> = ({ bookKey }) => {
             <button
               tabIndex={-1}
               aria-label={_('Close')}
-              onClick={handleClose}
+              onClick={handleBack}
               className={
                 'btn btn-ghost btn-circle absolute left-3 flex h-8 min-h-8 w-8 hover:bg-transparent focus:outline-none'
               }
