@@ -269,31 +269,20 @@ jobs:
           release_title="Read∞ ${{ steps.apk.outputs.version }} — all Android ABIs"
           release_notes="Stable Read∞ Android release. Package: com.infinity.readz. Version: ${{ steps.apk.outputs.version }}. All Android ABI variants included: arm64-v8a, armeabi-v7a, x86, and x86_64. Books and dictionaries are read directly from selected device folders; local metadata remains on-device. This build uses the supplied Read∞ icon and requires a second Android Back press within two seconds before exiting. Credits and license information are available in the repository README."
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" \
-              "${{ steps.apk.outputs.arm64_asset }}" \
-              "${{ steps.apk.outputs.arm64_asset }}.sha256" \
-              "${{ steps.apk.outputs.armv7_asset }}" \
-              "${{ steps.apk.outputs.armv7_asset }}.sha256" \
-              "${{ steps.apk.outputs.x86_asset }}" \
-              "${{ steps.apk.outputs.x86_asset }}.sha256" \
-              "${{ steps.apk.outputs.x86_64_asset }}" \
-              "${{ steps.apk.outputs.x86_64_asset }}.sha256" \
-              --clobber
-            gh release edit "$RELEASE_TAG" --title "$release_title" --notes "$release_notes"
-          else
-            gh release create "$RELEASE_TAG" \
-              "${{ steps.apk.outputs.arm64_asset }}" \
-              "${{ steps.apk.outputs.arm64_asset }}.sha256" \
-              "${{ steps.apk.outputs.armv7_asset }}" \
-              "${{ steps.apk.outputs.armv7_asset }}.sha256" \
-              "${{ steps.apk.outputs.x86_asset }}" \
-              "${{ steps.apk.outputs.x86_asset }}.sha256" \
-              "${{ steps.apk.outputs.x86_64_asset }}" \
-              "${{ steps.apk.outputs.x86_64_asset }}.sha256" \
-              --title "$release_title" \
-              --target "$GITHUB_SHA" \
-              --notes "$release_notes"
+            gh release delete "$RELEASE_TAG" --yes --cleanup-tag
           fi
+          gh release create "$RELEASE_TAG" \
+            "${{ steps.apk.outputs.arm64_asset }}" \
+            "${{ steps.apk.outputs.arm64_asset }}.sha256" \
+            "${{ steps.apk.outputs.armv7_asset }}" \
+            "${{ steps.apk.outputs.armv7_asset }}.sha256" \
+            "${{ steps.apk.outputs.x86_asset }}" \
+            "${{ steps.apk.outputs.x86_asset }}.sha256" \
+            "${{ steps.apk.outputs.x86_64_asset }}" \
+            "${{ steps.apk.outputs.x86_64_asset }}.sha256" \
+            --title "$release_title" \
+            --target "$GITHUB_SHA" \
+            --notes "$release_notes"
 
       - name: Attest arm64-v8a APK
         uses: actions/attest-build-provenance@v2
