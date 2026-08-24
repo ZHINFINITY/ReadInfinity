@@ -158,6 +158,9 @@ export const AboutWindow = () => {
             dir='ltr'
           >
             <p className='text-neutral-content text-sm'>
+              Created by <strong>Infinity-Lab</strong> and <strong>InfinityZ-Lab</strong>.
+            </p>
+            <p className='text-neutral-content text-sm'>
               © {new Date().getFullYear()} ZHINFINITY. All rights reserved.
             </p>
 
