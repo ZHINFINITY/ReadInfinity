@@ -122,7 +122,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
             <p className='text-base-content/60 text-sm'>
               {_('Need help?')}{' '}
               <a
-                href='https://github.com/ZHINFINITY/readinfinity/issues'
+                href='https://github.com/ZHINFINITY/ReadInfinity/issues'
                 className='link link-primary'
                 target='_blank'
                 rel='noreferrer'

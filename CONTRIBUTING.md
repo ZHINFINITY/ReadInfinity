@@ -6,7 +6,7 @@ Before contributing:
 
 - Follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 - Be respectful, civil, and open-minded.
-- Search the [Read∞ issue tracker](https://github.com/ZHINFINITY/readinfinity/issues) for known issues and fixes.
+- Search the [Read∞ issue tracker](https://github.com/ZHINFINITY/ReadInfinity/issues) for known issues and fixes.
 - For a substantial feature or behavior change, open an issue first so the scope can be discussed before implementation.
 
 ## Prerequisites
@@ -27,7 +27,7 @@ The [Tauri prerequisites guide](https://v2.tauri.app/start/prerequisites/) descr
 Clone the repository and enter its directory:
 
 ```bash
-git clone https://github.com/ZHINFINITY/readinfinity.git
+git clone https://github.com/ZHINFINITY/ReadInfinity.git
 cd readinfinity
 ```
 

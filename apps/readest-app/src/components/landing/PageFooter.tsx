@@ -9,7 +9,7 @@ interface PageFooterProps {
 export const PageFooter: React.FC<PageFooterProps> = ({ tagline }) => (
   <p className='text-base-content/50 mt-6 text-center text-xs'>
     <a
-      href='https://github.com/ZHINFINITY/readinfinity'
+      href='https://github.com/ZHINFINITY/ReadInfinity'
       className='hover:text-base-content/80 font-medium transition-colors'
       target='_blank'
       rel='noopener'

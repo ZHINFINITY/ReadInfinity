@@ -291,6 +291,33 @@ jobs:
             --target "$GITHUB_SHA" \
             --notes "$release_notes"
 
+      - name: Publish GitHub updater metadata
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        working-directory: apps/readest-app
+        run: |
+          set -euo pipefail
+          version="${{ steps.apk.outputs.version }}"
+          release_base="https://github.com/ZHINFINITY/ReadInfinity/releases/download/${RELEASE_TAG}/"
+          jq -n \
+            --arg version "$version" \
+            --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg notes "${{ steps.apk.outputs.version }}: Read∞ Android release with the supplied icon, InfinityZ-Lab creator credit, and two-press Back-to-exit behavior." \
+            --arg arm64_url "${release_base}${{ steps.apk.outputs.arm64_asset }}" \
+            --arg armv7_url "${release_base}${{ steps.apk.outputs.armv7_asset }}" \
+            --arg x86_url "${release_base}${{ steps.apk.outputs.x86_asset }}" \
+            --arg x86_64_url "${release_base}${{ steps.apk.outputs.x86_64_asset }}" \
+            '{version: $version, pub_date: $pub_date, notes: $notes, platforms: {
+              "android-arm64": {url: $arm64_url},
+              "android-armeabi-v7a": {url: $armv7_url},
+              "android-x86": {url: $x86_url},
+              "android-x86_64": {url: $x86_64_url}
+            }}' > latest.json
+          jq empty latest.json
+          test -f release-notes.json
+          gh release upload "$RELEASE_TAG" latest.json release-notes.json --clobber
+
       - name: Attest arm64-v8a APK
         uses: actions/attest-build-provenance@v2
         with:
@@ -320,7 +347,7 @@ jobs:
           echo "APKs: ${{ steps.apk.outputs.arm64_asset }}, ${{ steps.apk.outputs.armv7_asset }}, ${{ steps.apk.outputs.x86_asset }}, ${{ steps.apk.outputs.x86_64_asset }}"
           echo "Architectures: arm64-v8a, armeabi-v7a, x86, and x86_64"
           echo "Commit: $GITHUB_SHA"
-          echo "Public releases: https://github.com/ZHINFINITY/readinfinity/releases"
+          echo "Public releases: https://github.com/ZHINFINITY/ReadInfinity/releases"
           echo "Artifact: https://github.com/ZHINFINITY/readinfinity/actions/runs/$GITHUB_RUN_ID"
           echo "Artifact attestations: enabled for all four APKs"
           echo "APK signatures verified with apksigner."

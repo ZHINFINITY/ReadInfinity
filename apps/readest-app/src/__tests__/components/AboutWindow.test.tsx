@@ -90,8 +90,8 @@ describe('AboutWindow version label', () => {
     expect(screen.getByText('Read∞')).toBeInTheDocument();
     expect(screen.getByText('Read∞ icon')).toBeInTheDocument();
     expect(screen.getByText(/Created by/)).toBeInTheDocument();
-    expect(screen.getByText('Infinity-Lab')).toBeInTheDocument();
     expect(screen.getByText('InfinityZ-Lab')).toBeInTheDocument();
+    expect(screen.queryByText('Infinity-Lab')).not.toBeInTheDocument();
     expect(screen.getByText(/ZHINFINITY\. All rights reserved\./)).toBeInTheDocument();
     expect(screen.queryByText(/Bilingify/i)).not.toBeInTheDocument();
   });

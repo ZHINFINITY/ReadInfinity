@@ -60,7 +60,7 @@ Security fixes are prioritized for the latest public release series.
 
 ## Reporting a vulnerability
 
-Please report suspected vulnerabilities privately. Do not open a public issue or discussion for security-sensitive details. Use [GitHub’s private vulnerability reporting for this repository](https://github.com/ZHINFINITY/readinfinity/security/advisories/new), or contact the repository maintainer privately through the [ZHINFINITY GitHub profile](https://github.com/ZHINFINITY).
+Please report suspected vulnerabilities privately. Do not open a public issue or discussion for security-sensitive details. Use [GitHub’s private vulnerability reporting for this repository](https://github.com/ZHINFINITY/ReadInfinity/security/advisories/new), or contact the repository maintainer privately through the [ZHINFINITY GitHub profile](https://github.com/ZHINFINITY).
 
 Include the affected version, platform and ABI where relevant, a clear security impact, reproduction steps or a minimal proof of concept, and any suggested mitigation. Please redact personal files, private paths, signing material, and unrelated sensitive information.
 

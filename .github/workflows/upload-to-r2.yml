@@ -34,7 +34,7 @@ jobs:
     steps:
       - name: Download release assets
         run: |
-          gh release download "${{ inputs.tag }}" --repo readest/readest --dir ./release-assets
+          gh release download "${{ inputs.tag }}" --repo ZHINFINITY/ReadInfinity --dir ./release-assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -57,7 +57,7 @@ jobs:
 
       - name: Modify latest.json download URLs
         run: |
-          GITHUB_BASE_URL="https://github.com/readest/readest/releases/download"
+          GITHUB_BASE_URL="https://github.com/ZHINFINITY/ReadInfinity/releases/download"
           READEST_BASE_URL="https://download.readest.com/releases"
           sed -i "s#${GITHUB_BASE_URL}#${READEST_BASE_URL}#g" ./release-assets/latest.json
 

@@ -13,7 +13,7 @@ const SupportLinks = () => {
       <p className='text-neutral-content text-sm'>{_('Get Help with Read∞')}</p>
       <div className='flex gap-4'>
         <Link
-          href='https://github.com/ZHINFINITY/readinfinity'
+          href='https://github.com/ZHINFINITY/ReadInfinity'
           className='flex items-center gap-2 rounded-full bg-gray-800 p-1.5 text-white transition-colors hover:bg-gray-700'
           title='GitHub'
           aria-label='GitHub'

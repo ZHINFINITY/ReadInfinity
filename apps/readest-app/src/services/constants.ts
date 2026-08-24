@@ -881,7 +881,7 @@ export const CJK_FONTS_PATTENS = new RegExp(
 export const BOOK_IDS_SEPARATOR = '+';
 
 export const DOWNLOAD_READINFINITY_URL =
-  'https://github.com/ZHINFINITY/readinfinity/releases/latest';
+  'https://github.com/ZHINFINITY/ReadInfinity/releases/latest';
 
 export const READEST_WEB_BASE_URL = 'https://web.readest.com';
 export const READEST_NODE_BASE_URL = 'https://node.readest.com';
@@ -907,13 +907,15 @@ export const SHARE_TOKEN_LENGTH = 22;
 export const SHARE_PRESIGN_TTL_SECONDS = 300;
 export const SHARE_CFI_MAX_LENGTH = 512;
 
-const LATEST_DOWNLOAD_BASE_URL = 'https://download.readest.com/releases';
+const LATEST_DOWNLOAD_BASE_URL =
+  'https://github.com/ZHINFINITY/ReadInfinity/releases/latest/download';
 
 export const READEST_UPDATER_FILE = `${LATEST_DOWNLOAD_BASE_URL}/latest.json`;
 
 export const READEST_CHANGELOG_FILE = `${LATEST_DOWNLOAD_BASE_URL}/release-notes.json`;
 
-export const READEST_NIGHTLY_UPDATER_FILE = 'https://download.readest.com/nightly/latest.json';
+export const READEST_NIGHTLY_UPDATER_FILE =
+  'https://github.com/ZHINFINITY/ReadInfinity/releases/download/nightly/latest.json';
 
 // Public (verification) key, identical to src-tauri/tauri.conf.json `updater.pubkey`.
 // Used to verify nightly artifacts in the custom install flows (portable /

@@ -7,7 +7,7 @@ import Providers from '@/components/Providers';
 
 import '../styles/globals.css';
 
-const url = 'https://github.com/ZHINFINITY/readinfinity';
+const url = 'https://github.com/ZHINFINITY/ReadInfinity';
 const title = 'Read∞ — Offline reading, directly from your device';
 const description =
   'Read∞ is an offline ebook reader for reading books directly from device storage, ' +
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   authors: [
     {
       name: 'Read∞',
-      url: 'https://github.com/ZHINFINITY/readinfinity',
+      url: 'https://github.com/ZHINFINITY/ReadInfinity',
     },
   ],
   icons: {

@@ -158,7 +158,7 @@ export const AboutWindow = () => {
             dir='ltr'
           >
             <p className='text-neutral-content text-sm'>
-              Created by <strong>Infinity-Lab</strong> and <strong>InfinityZ-Lab</strong>.
+              Created by <strong>InfinityZ-Lab</strong>.
             </p>
             <p className='text-neutral-content text-sm'>
               © {new Date().getFullYear()} ZHINFINITY. All rights reserved.
@@ -178,7 +178,7 @@ export const AboutWindow = () => {
             <p className='text-neutral-content text-xs'>
               Source code is available at{' '}
               <Link
-                href='https://github.com/ZHINFINITY/readinfinity'
+                href='https://github.com/ZHINFINITY/ReadInfinity'
                 className='text-blue-500 underline'
               >
                 GitHub

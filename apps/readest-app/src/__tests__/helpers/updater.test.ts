@@ -66,6 +66,7 @@ import {
   setLastShownReleaseNotesVersion,
   getLastShownReleaseNotesVersion,
   resolveNightlyUpdate,
+  getAndroidPlatformKey,
   getNightlyPlatformKey,
 } from '@/helpers/updater';
 import {
@@ -455,6 +456,22 @@ describe('getNightlyPlatformKey', () => {
     expect(getNightlyPlatformKey('windows', 'i686', false, false)).toBeNull();
     expect(getNightlyPlatformKey('windows', 'i686', true, false)).toBeNull();
     expect(getNightlyPlatformKey('linux', 'i686', false, true)).toBeNull();
+  });
+});
+
+describe('getAndroidPlatformKey', () => {
+  it.each([
+    ['aarch64', 'android-arm64'],
+    ['arm', 'android-armeabi-v7a'],
+    ['armv7', 'android-armeabi-v7a'],
+    ['x86', 'android-x86'],
+    ['x86_64', 'android-x86_64'],
+  ])('maps %s to %s', (runtimeArch, platformKey) => {
+    expect(getAndroidPlatformKey(runtimeArch)).toBe(platformKey);
+  });
+
+  it('rejects an unknown architecture', () => {
+    expect(getAndroidPlatformKey('i686')).toBeNull();
   });
 });
 

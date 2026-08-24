@@ -4,9 +4,9 @@
   <p><strong>A private, offline-first ebook reader for Android and desktop platforms.</strong></p>
   <p>Open books and dictionaries directly from folders you choose. Your source files stay where you put them.</p>
   <p>
-    <a href="https://github.com/ZHINFINITY/readinfinity/releases/tag/v1.0.0">Latest release</a> ·
-    <a href="https://github.com/ZHINFINITY/readinfinity/issues">Issues</a> ·
-    <a href="https://github.com/ZHINFINITY/readinfinity/pulls">Pull requests</a>
+    <a href="https://github.com/ZHINFINITY/ReadInfinity/releases/tag/v1.0.0">Latest release</a> ·
+    <a href="https://github.com/ZHINFINITY/ReadInfinity/issues">Issues</a> ·
+    <a href="https://github.com/ZHINFINITY/ReadInfinity/pulls">Pull requests</a>
   </p>
 </div>
 
@@ -38,10 +38,10 @@ The public release page contains separate signed APKs for all four Android ABIs:
 
 | ABI | Download |
 |---|---|
-| `arm64-v8a` | [Read∞ Android release](https://github.com/ZHINFINITY/readinfinity/releases/tag/v1.0.0) |
-| `armeabi-v7a` | [Read∞ Android release](https://github.com/ZHINFINITY/readinfinity/releases/tag/v1.0.0) |
-| `x86` | [Read∞ Android release](https://github.com/ZHINFINITY/readinfinity/releases/tag/v1.0.0) |
-| `x86_64` | [Read∞ Android release](https://github.com/ZHINFINITY/readinfinity/releases/tag/v1.0.0) |
+| `arm64-v8a` | [Read∞ Android release](https://github.com/ZHINFINITY/ReadInfinity/releases/tag/v1.0.0) |
+| `armeabi-v7a` | [Read∞ Android release](https://github.com/ZHINFINITY/ReadInfinity/releases/tag/v1.0.0) |
+| `x86` | [Read∞ Android release](https://github.com/ZHINFINITY/ReadInfinity/releases/tag/v1.0.0) |
+| `x86_64` | [Read∞ Android release](https://github.com/ZHINFINITY/ReadInfinity/releases/tag/v1.0.0) |
 
 Select the APK matching the device architecture. The release page also provides SHA-256 checksum files.
 

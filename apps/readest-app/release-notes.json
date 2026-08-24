@@ -1,5 +1,13 @@
 {
   "releases": {
+    "1.0.0": {
+      "date": "2026-08-24",
+      "notes": [
+        "Android: Published signed APKs for arm64-v8a, armeabi-v7a, x86, and x86_64.",
+        "Branding: Added the supplied Read∞ icon throughout the app and credited InfinityZ-Lab in About.",
+        "Navigation: Android Back now requires a second press within two seconds before exiting."
+      ]
+    },
     "0.12.1": {
       "date": "2026-08-08",
       "notes": [
@@ -38,7 +46,7 @@
         "Text-to-Speech: Redesigned read-aloud as a mini player with an expandable full player, and playback now keeps going even after you close the book",
         "Text-to-Speech: Online voices now play gap-free with chapter seeking and lock-screen controls, plus Android Auto support so you can listen in the car",
         "Sync: Added S3-compatible cloud storage and a new Cloud Sync screen to choose and switch between your sync providers",
-        "Integrations: Added a Calibre plugin to push books and custom columns into Readest, and improved OPDS sign-in and auto-download for self-hosted catalogs",
+        "Integrations: Added a Calibre plugin to push books and custom columns into Read∞, and improved OPDS sign-in and auto-download for self-hosted catalogs",
         "Library: New books dropped into watched folders now import automatically, and you can sort your shelf by reading progress",
         "More: Added a speak button in the dictionary popup, a cleaner theme switcher, and per-rule toggles for proofreading"
       ]
@@ -103,7 +111,7 @@
     "0.11.2": {
       "date": "2026-05-31",
       "notes": [
-        "Send to Readest: Clip web pages and articles into your library via the system share sheet, or by emailing them in",
+        "Send to Read∞: Clip web pages and articles into your library via the system share sheet, or by emailing them in",
         "Dictionary: Look up words with your device's built-in system dictionary on macOS, iOS, and Android, plus faster MDict and StarDict imports",
         "Library: Import books from a folder with format and size filters, or read them in place from external folders without copying",
         "Reading: The reading ruler now follows individual lines, you can swipe along the edge to adjust brightness on mobile, and customize hardware-button page turning",
@@ -120,7 +128,7 @@
       "notes": [
         "Dictionaries: You can now import your own StarDict and MDict dictionaries",
         "Sync: Your custom dictionaries, custom fonts, background textures and OPDS catalogs now sync across devices",
-        "KOReader Sync: Browse your full Readest Library from inside KOReader, with improved sync diagnostics",
+        "KOReader Sync: Browse your full Read∞ Library from inside KOReader, with improved sync diagnostics",
         "OPDS: Stream books over OPDS-PSE and optionally auto-download new titles from feeds",
         "Sharing: Create share links for books, jump directly to book via deep links in exported annotations",
         "Library: Added an optional 4-digit PIN lock at app launch to keep your library private",
@@ -180,7 +188,7 @@
         "Reading: Added current time and battery display in footer",
         "Reading: Added TTS, annotation support, pinch-to-zoom, and scroll mode for PDFs",
         "Library: Added backup/restore to a zip file and batch metadata refresh",
-        "KOReader: Added bookmark and annotation sync between KOReader and Readest devices",
+        "KOReader: Added bookmark and annotation sync between KOReader and Read∞ devices",
         "Footnotes: Added back navigation with link history and more responsive popup sizing",
         "Annotations: Added loupe display when selecting text in instant annotation mode",
         "Text-to-Speech: Fixed TTS reading position tracking in scrolled mode"
@@ -290,8 +298,8 @@
         "Sync: Improved file downloading by correctly handling special characters in filenames",
         "UI: Added an option to temporarily dismiss the reading progress bar",
         "Settings: Screen brightness adjustments now apply only to the reader view",
-        "iOS: You can now open files directly in Readest from the Files app",
-        "macOS: Added a global menu option to open files with Readest"
+        "iOS: You can now open files directly in Read∞ from the Files app",
+        "macOS: Added a global menu option to open files with Read∞"
       ]
     },
     "0.9.95": {
@@ -352,7 +360,7 @@
         "E-Ink: Enhanced readability on the library page for E-Ink devices",
         "UI: Storage capacity is now displayed with precise values in the user profile",
         "Reader: You can now import files directly into the currently selected book group",
-        "Account: You can now update the email address linked to your Readest account",
+        "Account: You can now update the email address linked to your Read∞ account",
         "Footnotes: Added compatibility for more footnote formats"
       ]
     },
@@ -411,7 +419,7 @@
       "notes": [
         "Reader: Added support for per-book background image customization",
         "Reader: Added option to override book language metadata for improved hyphenation accuracy",
-        "Sync: Readest sync in KOReader can now be triggered using gesture controls",
+        "Sync: Read∞ sync in KOReader can now be triggered using gesture controls",
         "Sync: Fixed a crash in KOReader that occurred when syncing progress without an open book",
         "Sync: Improved upload performance with concurrent upload support"
       ]
@@ -432,7 +440,7 @@
     "0.9.82": {
       "date": "2025-10-01",
       "notes": [
-        "Sync: More reliable syncing between KOReader and Readest",
+        "Sync: More reliable syncing between KOReader and Read∞",
         "MOBI: Fixed an issue where some footnotes in MOBI/AZW files were not parsed correctly",
         "Storage: Added support for changing data location on Windows, macOS, Linux, and Android",
         "Windows: Portable EXE version now stores all reading data in the directory of the executable",
@@ -471,7 +479,7 @@
         "TTS: Added previous/next sentence navigation controls in the TTS bar",
         "TTS: Added media control support on iOS lock screen and AirPods",
         "TTS: Fixed an issue where headings could not be highlighted for TTS",
-        "Sync: Fixed occasional sync failures between KOReader and Readest",
+        "Sync: Fixed occasional sync failures between KOReader and Read∞",
         "Fonts: Grouped font styles into custom font families for easier selection",
         "Reader: Improved text selection sensitivity when using a stylus",
         "Reader: Books can now be properly closed using the system back button on Android",
@@ -621,7 +629,7 @@
     "0.9.62": {
       "date": "2025-07-02",
       "notes": [
-        "Subscription: You can now upgrade to Readest Premium and manage your subscription",
+        "Subscription: You can now upgrade to Read∞ Premium and manage your subscription",
         "Reader: Added an option to toggle Parallel Reading when viewing multiple books",
         "Translation: Added an option to show or hide the original text in translations",
         "Layout: TOC on Android now uses an overlay scrollbar for easier navigation",
@@ -640,7 +648,7 @@
         "Settings: Added options to reset settings from the config dialog",
         "Import: Fixed encoded filenames when importing TXT files on iOS",
         "Linux: Fixed missing app icon on some Linux distributions",
-        "GitHub: Added donation link to support Readest development"
+        "GitHub: Added donation link to support Read∞ development"
       ]
     },
     "0.9.60": {
@@ -836,7 +844,7 @@
       "date": "2025-04-20",
       "notes": [
         "📥 New download and upload buttons in the book detail dialog for easier file management",
-        "📂 You can now open files directly in Readest from your file manager on Android and iOS",
+        "📂 You can now open files directly in Read∞ from your file manager on Android and iOS",
         "🛠️ Fixed an issue where files with quotation marks in the filename could not be opened",
         "📖 Improved the immersive reading experience on the reader page for Android and iOS",
         "🌐 Added GuanKiapTsingKhai-T to the list of available CJK fonts"
@@ -1146,7 +1154,7 @@
     "0.8.2": {
       "date": "2024-12-06",
       "notes": [
-        "Support file associations for one-click open with Readest.",
+        "Support file associations for one-click open with Read∞.",
         "Support APP auto updater.",
         "Support online web version."
       ]

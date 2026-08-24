@@ -435,7 +435,7 @@ const SuccessPageWithSearchParams = () => {
           <p>
             {_('Need help? ')}
             <a
-              href='https://github.com/ZHINFINITY/readinfinity/issues'
+              href='https://github.com/ZHINFINITY/ReadInfinity/issues'
               className='underline'
               target='_blank'
               rel='noreferrer'

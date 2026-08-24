@@ -57,14 +57,21 @@ export interface ResolvedNightlyUpdate {
   signature: string; // artifact signature
 }
 
+export const getAndroidPlatformKey = (osArchVal: string): string | null => {
+  if (osArchVal === 'aarch64') return 'android-arm64';
+  if (osArchVal === 'arm' || osArchVal === 'armv7') return 'android-armeabi-v7a';
+  if (osArchVal === 'x86') return 'android-x86';
+  if (osArchVal === 'x86_64') return 'android-x86_64';
+  return null;
+};
+
 export const getNightlyPlatformKey = (
   osTypeVal: string,
   osArchVal: string,
   isPortable: boolean,
   isAppImage: boolean,
 ): string | null => {
-  if (osTypeVal === 'android')
-    return osArchVal === 'aarch64' ? 'android-arm64' : 'android-universal';
+  if (osTypeVal === 'android') return getAndroidPlatformKey(osArchVal);
   if (osTypeVal === 'macos') return osArchVal === 'aarch64' ? 'darwin-aarch64' : 'darwin-x86_64';
   // Match the arch explicitly so a 32-bit (or otherwise unknown) arch yields no
   // nightly rather than mis-routing to aarch64.
@@ -181,13 +188,12 @@ export const checkForAppUpdates = async (
         const response = await fetch(READEST_UPDATER_FILE, { connectTimeout: 5000 });
         const data = await response.json();
         const isNewer = semver.gt(data.version, getAppVersion());
-        if (
-          isNewer &&
-          ('android-arm64' in data.platforms || 'android-universal' in data.platforms)
-        ) {
+        const platformKey = getAndroidPlatformKey(osArch());
+        const hasCompatibleApk = Boolean(platformKey && data.platforms?.[platformKey]?.url);
+        if (isNewer && hasCompatibleApk) {
           setUpdaterWindowVisible(true, data.version!, getAppVersion());
         }
-        return isNewer;
+        return isNewer && hasCompatibleApk;
       } catch (err) {
         console.warn('Failed to fetch Android update info', err);
         throw new Error('Failed to fetch Android update info');
