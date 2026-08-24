@@ -109,7 +109,13 @@ export const AboutWindow = () => {
         <div className='about-content flex flex-col items-center justify-center gap-4 pb-10 sm:pb-0'>
           <div className='flex flex-1 flex-col items-center justify-end gap-2 px-8 py-2'>
             <div className='mb-2 mt-6'>
-              <Image src='/icon.png' alt='App Logo' className='h-20 w-20' width={64} height={64} />
+              <Image
+                src='/icon.png'
+                alt='Read∞ icon'
+                className='h-20 w-20'
+                width={64}
+                height={64}
+              />
             </div>
             <div className='flex select-text flex-col items-center'>
               <h2 className='mb-2 text-2xl font-bold'>Read∞</h2>
@@ -152,7 +158,7 @@ export const AboutWindow = () => {
             dir='ltr'
           >
             <p className='text-neutral-content text-sm'>
-              © {new Date().getFullYear()} Bilingify LLC. All rights reserved.
+              © {new Date().getFullYear()} ZHINFINITY. All rights reserved.
             </p>
 
             <p className='text-neutral-content text-xs'>

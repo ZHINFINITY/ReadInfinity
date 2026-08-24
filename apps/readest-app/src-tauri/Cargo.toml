@@ -1,8 +1,8 @@
 [package]
 name = "Readest"
 version = "0.2.2"
-description = "Your online library"
-authors = ["Bilingify LLC"]
+description = "Private offline ebook reader"
+authors = ["ZHINFINITY"]
 license = ""
 repository = ""
 edition = "2021"

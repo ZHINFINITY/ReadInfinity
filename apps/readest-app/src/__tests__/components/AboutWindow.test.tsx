@@ -84,6 +84,15 @@ describe('AboutWindow version label', () => {
     cleanup();
   });
 
+  it('shows Read∞ branding, supplied-icon alt text, and the current credit', async () => {
+    await openDialog();
+
+    expect(screen.getByText('Read∞')).toBeInTheDocument();
+    expect(screen.getByText('Read∞ icon')).toBeInTheDocument();
+    expect(screen.getByText(/ZHINFINITY\. All rights reserved\./)).toBeInTheDocument();
+    expect(screen.queryByText(/Bilingify/i)).not.toBeInTheDocument();
+  });
+
   it('copies the version and webview info when clicked', async () => {
     const label = await openDialog();
 
