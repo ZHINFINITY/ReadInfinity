@@ -143,6 +143,7 @@ jobs:
           keystore_file="$RUNNER_TEMP/readinfinity-release.jks"
           base64 --decode <<< "$KEYSTORE_BASE64" > "$keystore_file"
           test -s "$keystore_file"
+          test -n "$STORE_PASSWORD" || { echo 'Missing Android keystore store password secret'; exit 1; }
           {
             printf 'keyAlias=%s\n' "$KEY_ALIAS"
             printf 'password=%s\n' "$KEY_PASSWORD"
@@ -150,6 +151,12 @@ jobs:
             printf 'storeFile=%s\n' "$keystore_file"
           } > apps/readest-app/src-tauri/gen/android/keystore.properties
           chmod 600 apps/readest-app/src-tauri/gen/android/keystore.properties
+          {
+            printf 'READINFINITY_KEYSTORE_FILE=%s\n' "$keystore_file"
+            printf 'READINFINITY_KEY_ALIAS=%s\n' "$KEY_ALIAS"
+            printf 'READINFINITY_KEY_PASSWORD=%s\n' "$KEY_PASSWORD"
+            printf 'READINFINITY_STORE_PASSWORD=%s\n' "$STORE_PASSWORD"
+          } >> "$GITHUB_ENV"
 
       - name: Build signed Android APK variants
         working-directory: apps/readest-app
@@ -166,11 +173,17 @@ jobs:
               i686) abi='x86' ;;
               x86_64) abi='x86_64' ;;
             esac
-            apk_path="$(find src-tauri/gen/android -type f -name 'app-universal-release.apk' -print -quit)"
-            test -n "$apk_path"
-            cp "$apk_path" "$output_dir/$abi.apk"
+            unsigned_apk="$(find src-tauri/gen/android -type f -path '*/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk' -print -quit)"
+            test -n "$unsigned_apk"
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
+              --ks "$READINFINITY_KEYSTORE_FILE" \
+              --ks-key-alias "$READINFINITY_KEY_ALIAS" \
+              --ks-pass env:READINFINITY_STORE_PASSWORD \
+              --key-pass env:READINFINITY_KEY_PASSWORD \
+              --out "$output_dir/$abi.apk" \
+              "$unsigned_apk"
             test -s "$output_dir/$abi.apk"
-            echo "Built $abi from Tauri target $target"
+            echo "Built and signed $abi from Tauri target $target"
           done
           ls -lh "$output_dir"
 
