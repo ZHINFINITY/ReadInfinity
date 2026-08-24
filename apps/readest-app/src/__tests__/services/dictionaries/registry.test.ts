@@ -112,7 +112,7 @@ describe('dictionary registry', () => {
     expect(providers).toEqual([]);
   });
 
-  it('skips imported dictionaries that are unavailable, deleted, or unsupported', () => {
+  it('keeps unavailable and unsupported imported dictionaries visible while skipping deleted ones', () => {
     const fs = { openFile: async () => new File([], '') };
     const dicts: ImportedDictionary[] = [
       {
@@ -160,6 +160,8 @@ describe('dictionary registry', () => {
     expect(providers.map((p) => p.id)).toEqual([
       BUILTIN_PROVIDER_IDS.wiktionary,
       'mdict:available',
+      'mdict:gone',
+      'stardict:nope',
     ]);
   });
 });

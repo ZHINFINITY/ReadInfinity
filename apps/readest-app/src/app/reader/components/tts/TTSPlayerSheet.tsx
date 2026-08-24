@@ -14,20 +14,15 @@ import {
   MdChevronRight,
 } from 'react-icons/md';
 import { RiVoiceAiFill } from 'react-icons/ri';
-import { useRouter } from 'next/navigation';
 import { TTSVoicesGroup } from '@/services/tts';
 import { MEDIA_OVERLAY_VOICE_ID } from '@/services/tts/mediaOverlay';
 import { useEnv } from '@/context/EnvContext';
-import { useAuth } from '@/context/AuthContext';
 import { useReaderStore } from '@/store/readerStore';
 import { useBookProgress } from '@/store/readerProgressStore';
 import { useBookDataStore } from '@/store/bookDataStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { TranslationFunc, useTranslation } from '@/hooks/useTranslation';
 import { useResponsiveSize } from '@/hooks/useResponsiveSize';
-import { useQuotaStats } from '@/hooks/useQuotaStats';
-import { isTTSCacheAllowed } from '@/utils/access';
-import { navigateToLogin, navigateToProfile } from '@/utils/nav';
 import { getLanguageName } from '@/utils/lang';
 import { formatPlaybackTime } from '@/utils/time';
 import Dialog from '@/components/Dialog';
@@ -116,25 +111,15 @@ const TTSPlayerSheet = ({
   activeSectionIndex,
 }: TTSPlayerSheetProps) => {
   const _ = useTranslation();
-  const router = useRouter();
   const { envConfig } = useEnv();
-  const { user } = useAuth();
   const { getViewSettings, setViewSettings } = useReaderStore();
   const { getBookData } = useBookDataStore();
   const progress = useBookProgress(bookKey);
   const viewSettings = getViewSettings(bookKey);
 
-  // Offline audio (pre-downloading Read Aloud audio per chapter) is a premium
-  // feature: any paid plan can use it; free / signed-out users see the row with
-  // a Premium badge that routes to the upgrade page instead of the per-chapter
-  // download controls. Mirrors the cloud-sync paywall in IntegrationsPanel.
-  const { userProfilePlan } = useQuotaStats();
-  const isDownloadPremium = isTTSCacheAllowed(userProfilePlan ?? 'free');
-  // Only badge users who can't use it yet: signed out (known at once), or a
-  // resolved plan without the feature. Suppress it while a signed-in user's
-  // plan is still loading so it never flashes at an entitled user.
-  const premiumBadge =
-    !user || (userProfilePlan !== undefined && !isDownloadPremium) ? _('Premium') : undefined;
+  // Offline Audio is local chapter caching in this offline fork. It must not
+  // route through the removed account/premium flow, because that closes the
+  // player and makes TTS appear to fail when the row is tapped.
 
   // A book can carry a coverImageUrl that no longer resolves (cover never
   // extracted, file pruned). A broken <img> still occupies its h-32 box, so
@@ -230,19 +215,8 @@ const TTSPlayerSheet = ({
     setView('main');
   };
 
-  // Entitled users drill into the per-chapter download view; everyone else is
-  // routed to the upgrade page (or sign-in), the sheet closing first so the
-  // navigation isn't hidden behind it.
   const handleOpenDownloads = () => {
-    if (isDownloadPremium) {
-      setView('chapters');
-    } else if (user) {
-      onClose();
-      navigateToProfile(router);
-    } else {
-      onClose();
-      navigateToLogin(router);
-    }
+    setView('chapters');
   };
 
   const timeoutOptions = getTTSTimeoutOptions(_);
@@ -459,9 +433,6 @@ const TTSPlayerSheet = ({
                       })}
                 </span>
               </div>
-              {premiumBadge && (
-                <span className='badge badge-sm badge-ghost shrink-0'>{premiumBadge}</span>
-              )}
               <MdChevronRight size={iconSize24} className='shrink-0 rtl:rotate-180' />
             </button>
           )}

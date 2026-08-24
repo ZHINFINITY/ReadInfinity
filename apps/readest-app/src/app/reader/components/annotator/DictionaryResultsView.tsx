@@ -512,6 +512,7 @@ export const DictionaryResultsBody: React.FC<DictionaryResultsBodyProps> = ({
                 role='button'
                 tabIndex={0}
                 aria-expanded={expanded}
+                aria-busy={isLoading}
                 onClick={(e) => {
                   const path = e.nativeEvent.composedPath();
                   for (const node of path) {
@@ -534,8 +535,11 @@ export const DictionaryResultsBody: React.FC<DictionaryResultsBodyProps> = ({
                 {isLoading && (
                   <div
                     data-testid='dict-card-skeleton'
-                    className='bg-base-200/50 h-12 animate-pulse rounded'
-                  />
+                    className='bg-base-200/50 flex min-h-12 items-center justify-between gap-2 rounded px-3 py-2 text-sm'
+                  >
+                    <span className='min-w-0 truncate font-medium'>{_(p.label)}</span>
+                    <span className='text-base-content/60 shrink-0'>{_('Loading…')}</span>
+                  </div>
                 )}
                 <div
                   ref={setContainerRef(p.id)}
@@ -556,11 +560,18 @@ export const DictionaryResultsBody: React.FC<DictionaryResultsBodyProps> = ({
                 />
                 {!isLoading && card?.state !== 'loaded' && (
                   <div className='bg-base-200/40 mb-2 rounded px-3 py-2 text-sm'>
-                    {card?.state === 'empty'
-                      ? _('No definition found')
-                      : card?.state === 'unsupported'
-                        ? _('Dictionary format not supported')
-                        : _('Dictionary unavailable')}
+                    <div>
+                      {card?.state === 'empty'
+                        ? _('No definition found')
+                        : card?.state === 'unsupported'
+                          ? _('Dictionary format not supported')
+                          : _('Dictionary unavailable')}
+                    </div>
+                    {card?.state === 'error' && card.outcome?.message && (
+                      <div className='text-base-content/55 mt-1 break-words text-xs'>
+                        {card.outcome.message}
+                      </div>
+                    )}
                   </div>
                 )}
                 {!isLoading && (

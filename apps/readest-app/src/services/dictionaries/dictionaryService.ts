@@ -655,9 +655,15 @@ async function importBglBundle(
   };
 }
 
-function externalDictionaryId(kind: Bundle['kind'], externalRoot: string, filenames: string[]): string {
+function externalDictionaryId(
+  kind: Bundle['kind'],
+  externalRoot: string,
+  filenames: string[],
+): string {
   return `external-${md5(`${kind}|${externalRoot}|${[...filenames].sort().join('|')}`)}`;
 }
+
+const displayStem = (stem: string): string => stem.split(/[\\/]/).pop() || stem;
 
 /** Build a direct-folder record without opening large dictionary payloads. */
 async function createExternalDictionary(
@@ -668,7 +674,7 @@ async function createExternalDictionary(
   const bundleDir = externalRoot;
   const addedAt = Date.now();
   if (bundle.kind === 'stardict') {
-    let name = bundle.stem;
+    let name = displayStem(bundle.stem);
     let lang: string | undefined;
     try {
       const ifo = parseIfo(await (await readSource(fs, bundle.ifo.source)).text());
@@ -708,7 +714,7 @@ async function createExternalDictionary(
       id,
       contentId: id,
       kind: 'mdict',
-      name: bundle.stem,
+      name: displayStem(bundle.stem),
       bundleDir,
       externalRoot,
       files: {
@@ -726,7 +732,7 @@ async function createExternalDictionary(
       id,
       contentId: id,
       kind: 'dict',
-      name: bundle.stem,
+      name: displayStem(bundle.stem),
       bundleDir,
       externalRoot,
       files: { index: bundle.index.name, dict: bundle.dict.name },
@@ -739,7 +745,7 @@ async function createExternalDictionary(
       id,
       contentId: id,
       kind: 'slob',
-      name: bundle.stem,
+      name: displayStem(bundle.stem),
       bundleDir,
       externalRoot,
       files: { slob: bundle.slob.name },
@@ -751,7 +757,7 @@ async function createExternalDictionary(
     id,
     contentId: id,
     kind: 'bgl',
-    name: bundle.stem,
+    name: displayStem(bundle.stem),
     bundleDir,
     externalRoot,
     files: { bgl: bundle.bgl.name },
@@ -879,7 +885,7 @@ export async function importDictionaries(
     imported.push(dict);
   }
 
-    return {
+  return {
     imported,
     replacements,
     orphanFiles: orphans.map((o) => o.name),
@@ -898,7 +904,19 @@ export async function loadDictionariesFromFolder(
   externalRoot: string,
   existingDictionaries: ImportedDictionary[] = [],
 ): Promise<ImportDictionariesResult> {
-  const supported = new Set(['ifo', 'idx', 'dict', 'dz', 'syn', 'mdx', 'mdd', 'css', 'index', 'slob', 'bgl']);
+  const supported = new Set([
+    'ifo',
+    'idx',
+    'dict',
+    'dz',
+    'syn',
+    'mdx',
+    'mdd',
+    'css',
+    'index',
+    'slob',
+    'bgl',
+  ]);
   const files = await fs.readDir(externalRoot, 'None', [...supported]);
   const normalizedRoot = externalRoot.replace(/[\\/]$/, '').replace(/\\/g, '/');
   const selected: SelectedFile[] = files

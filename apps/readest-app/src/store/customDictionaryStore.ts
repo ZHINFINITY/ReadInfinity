@@ -216,7 +216,10 @@ export const useCustomDictionaryStore = create<DictionaryStoreState>((set, get) 
         ? state.settings.providerOrder
         : [dict.id, ...state.settings.providerOrder];
       const enabled = { ...state.settings.providerEnabled };
-      if (!(dict.id in enabled)) enabled[dict.id] = !dict.unsupported;
+      // A folder load must surface every discovered dictionary in the lookup
+      // sheet. Unsupported/unavailable entries render an explanatory status
+      // card instead of being silently disabled and appearing missing.
+      if (!(dict.id in enabled)) enabled[dict.id] = true;
       return {
         dictionaries,
         settings: { ...state.settings, providerOrder: order, providerEnabled: enabled },
@@ -611,14 +614,14 @@ export const useCustomDictionaryStore = create<DictionaryStoreState>((set, get) 
       const persistedEnabled = Object.fromEntries(
         Object.entries(persistedSettings.providerEnabled).filter(([id]) => dropTombstoned(id)),
       );
-      // Collect providerEnabled keys that have no slot in providerOrder.
-      // Settings replica pushes are per-field LWW: a Device A push that
-      // grew providerEnabled but didn't ship a matching providerOrder
-      // (or whose providerOrder push was overwritten) leaves the dict
-      // registered-but-invisible. Surface it in the list so the user
-      // can see and use it.
+      // Collect imported dictionary IDs that have no slot in providerOrder.
+      // Settings replica pushes are per-field LWW: an earlier save can leave
+      // the dictionary records present while providerOrder or providerEnabled
+      // is missing them. Surface every live record so a folder import cannot
+      // appear to load only one dictionary.
       const orphans: string[] = [];
-      for (const id of Object.keys(persistedEnabled)) {
+      const dictionaryIds = dictionaries.filter((dict) => !dict.deletedAt).map((dict) => dict.id);
+      for (const id of [...Object.keys(persistedEnabled), ...dictionaryIds]) {
         if (!orderSet.has(id)) {
           orphans.push(id);
           orderSet.add(id);
@@ -641,12 +644,21 @@ export const useCustomDictionaryStore = create<DictionaryStoreState>((set, get) 
           merged.splice(firstBuiltinIdx, 0, ...orphans);
         }
       }
+      const providerEnabled = {
+        ...DEFAULT_DICTIONARY_SETTINGS.providerEnabled,
+        ...persistedEnabled,
+      };
+      // Imported dictionaries are local lookup sources and should be visible
+      // after a folder load or restart. Restore missing toggle entries as
+      // enabled; explicit user-disabled entries remain unchanged.
+      for (const dict of dictionaries) {
+        if (!dict.deletedAt && !(dict.id in providerEnabled)) {
+          providerEnabled[dict.id] = true;
+        }
+      }
       const settingsMerged: DictionarySettings = {
         providerOrder: merged,
-        providerEnabled: {
-          ...DEFAULT_DICTIONARY_SETTINGS.providerEnabled,
-          ...persistedEnabled,
-        },
+        providerEnabled,
         defaultProviderId: persistedSettings.defaultProviderId,
         webSearches: persistedSettings.webSearches ?? [],
         fontScale: persistedSettings.fontScale ?? DEFAULT_DICTIONARY_SETTINGS.fontScale,

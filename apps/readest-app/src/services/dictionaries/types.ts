@@ -157,13 +157,14 @@ export interface ImportedDictionary {
   /**
    * True when metadata is present (e.g. synced from another device) but the
    * binary bundle is missing on this device. The settings UI surfaces a
-   * "Re-import" affordance; the popup hides the provider.
+   * "Re-import" affordance; the lookup popup shows an unavailable status.
    */
   unavailable?: boolean;
   /**
    * True when the bundle imports cleanly but the dictionary format is outside
    * v1 scope (e.g. multi-type StarDict, raw `.dict` instead of `.dict.dz`,
-   * encrypted MDX). Provider returns `{ ok: false, reason: 'unsupported' }`.
+   * encrypted MDX). Provider returns `{ ok: false, reason: 'unsupported' }`,
+   * and the lookup popup shows an explanatory status.
    */
   unsupported?: boolean;
   /** Human-readable reason when `unsupported` is true. */
