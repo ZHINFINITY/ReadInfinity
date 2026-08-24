@@ -237,7 +237,7 @@ jobs:
                 exit 1
               fi
             done
-            release_asset="Read∞_${version}_${abi}.apk"
+            release_asset="ReadInfinity_${version}_${abi}.apk"
             cp "$apk_path" "$release_asset"
             sha256sum "$release_asset" | tee "$release_asset.sha256"
             case "$abi" in
