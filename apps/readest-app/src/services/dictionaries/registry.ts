@@ -132,8 +132,9 @@ const getOrCreate = (
 /**
  * Returns the ordered list of enabled providers ready for the popup.
  * - Filters out disabled ids.
- * - Filters out imported entries that are soft-deleted, unavailable on this
- *   device, or flagged unsupported.
+ * - Filters out imported entries that are soft-deleted. Entries unavailable on
+ *   this device or flagged unsupported remain visible so the lookup UI can
+ *   explain why that provider did not return a definition.
  * - Filters out the system-dictionary sentinel (no in-popup UI; handled
  *   directly by the annotator before the popup opens).
  * - Preserves the order in `settings.providerOrder`.
@@ -163,7 +164,7 @@ export const getEnabledProviders = ({
     }
     const dict = dictById.get(id);
     if (!dict) continue;
-    if (dict.deletedAt || dict.unavailable || dict.unsupported) continue;
+    if (dict.deletedAt) continue;
     const provider = getOrCreate(id, dict, fs, settings);
     if (provider) out.push(provider);
   }

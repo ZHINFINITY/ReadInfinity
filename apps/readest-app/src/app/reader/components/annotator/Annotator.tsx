@@ -123,7 +123,7 @@ const Annotator: React.FC<{ bookKey: string; contentInsets: Insets }> = ({
   const getViewSettings = useReaderStore((s) => s.getViewSettings);
   const { setNotebookVisible, setNotebookNewAnnotation, setNotebookNewHighlightId } =
     useNotebookStore();
-  const { clearBooknotesNav, isSideBarVisible } = useSidebarStore();
+  const { clearBooknotesNav, isSideBarVisible, setSideBarBookKey } = useSidebarStore();
   const { listenToNativeTouchEvents } = useDeviceControlStore();
   const { selectFiles } = useFileSelector(appService, _);
 
@@ -1437,6 +1437,7 @@ const Annotator: React.FC<{ bookKey: string; contentInsets: Insets }> = ({
       selection.href = href;
     }
     const created = handleHighlight(true);
+    setSideBarBookKey(bookKey);
     setNotebookVisible(true);
     setNotebookNewAnnotation(selection);
     // Remember the eagerly-created highlight so the notebook can remove it if the

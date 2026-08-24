@@ -37,10 +37,15 @@ const DictionarySheet: React.FC<DictionarySheetProps> = ({ word, lang, onDismiss
           speaking={state.isSpeaking}
         />
       }
-      contentClassName='!px-0 !mt-0'
+      // The sheet body owns the scroll area; leaving Dialog's outer content
+      // scroller active creates a nested flex/overflow layout that can paint
+      // the first provider and leave the lower viewport empty on Android.
+      contentClassName='!mt-0 !min-h-0 !overflow-hidden !px-0'
       onClose={onDismiss}
     >
-      <DictionaryResultsBody {...state} />
+      <div className='min-h-0 flex-1'>
+        <DictionaryResultsBody {...state} />
+      </div>
     </Dialog>
   );
 };

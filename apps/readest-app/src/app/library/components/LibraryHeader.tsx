@@ -148,7 +148,8 @@ const LibraryHeader: React.FC<LibraryHeaderProps> = ({
               onChange={handleSearchChange}
               spellCheck='false'
               className={clsx(
-                'search-input input h-9 w-full rounded-full pe-[30%] ps-10 sm:h-7',
+                'search-input input h-9 w-full rounded-full ps-10 sm:h-7',
+                searchTarget === 'text' ? 'pe-12' : 'pe-32 sm:pe-40',
                 'bg-base-300/45 border-0',
                 'font-sans text-sm font-light',
                 'placeholder:text-base-content/50 truncate',

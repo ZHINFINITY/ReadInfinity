@@ -83,31 +83,35 @@ const WatchedFoldersPane: React.FC<WatchedFoldersPaneProps> = ({
       ) : (
         <BoxedList>
           {folders.map((folder) => (
-            <div key={folder.path} className='flex items-center gap-2 py-2 pe-2'>
-              <div className='min-w-0 flex-1'>
-                <div className='truncate font-medium' title={folder.path}>
+            <div key={folder.path} className='flex min-w-0 items-start gap-2 py-2 pe-2'>
+              <div className='min-w-0 flex-1 overflow-hidden'>
+                <div className='line-clamp-2 break-words font-medium' title={folder.path}>
                   {getFilename(folder.path) || folder.path}
                 </div>
-                <div className='text-base-content/65 truncate text-[0.85em]'>{folder.path}</div>
+                <div className='text-base-content/65 line-clamp-2 break-all text-[0.85em]'>
+                  {folder.path}
+                </div>
               </div>
-              <SettingsSelect
-                value={folder.flatten ? 'flatten' : 'keep'}
-                onChange={(e) => onSetFlatten(folder.path, e.target.value === 'flatten')}
-                options={[
-                  { value: 'keep', label: _('Groups') },
-                  { value: 'flatten', label: _('Flat') },
-                ]}
-                ariaLabel={_('Folder Structure')}
-              />
-              <button
-                type='button'
-                onClick={() => onUnwatch(folder.path)}
-                className='btn btn-ghost btn-sm shrink-0 px-1'
-                aria-label={_('Remove Folder')}
-                title={_('Remove Folder')}
-              >
-                <IoMdCloseCircleOutline className='text-base-content/75 h-5 w-5' />
-              </button>
+              <div className='flex shrink-0 items-start gap-1'>
+                <SettingsSelect
+                  value={folder.flatten ? 'flatten' : 'keep'}
+                  onChange={(e) => onSetFlatten(folder.path, e.target.value === 'flatten')}
+                  options={[
+                    { value: 'keep', label: _('Groups') },
+                    { value: 'flatten', label: _('Flat') },
+                  ]}
+                  aria-label={_('Folder Structure')}
+                />
+                <button
+                  type='button'
+                  onClick={() => onUnwatch(folder.path)}
+                  className='btn btn-ghost btn-sm shrink-0 px-1'
+                  aria-label={_('Remove Folder')}
+                  title={_('Remove Folder')}
+                >
+                  <IoMdCloseCircleOutline className='text-base-content/75 h-5 w-5' />
+                </button>
+              </div>
             </div>
           ))}
         </BoxedList>

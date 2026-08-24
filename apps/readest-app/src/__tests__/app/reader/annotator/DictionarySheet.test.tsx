@@ -331,7 +331,7 @@ describe('DictionarySheet — concurrent lookup', () => {
     await waitFor(() => screen.getByText('CMU American English spelling'));
   });
 
-  it('hides cards from providers that return empty', async () => {
+  it('keeps cards from providers that return empty and explains the state', async () => {
     providersForNextRender.push(
       buildRealStarDictProvider(),
       buildEmptyProvider('empty:1', 'Empty One'),
@@ -341,9 +341,11 @@ describe('DictionarySheet — concurrent lookup', () => {
 
     // The cmudict card eventually appears.
     await waitFor(() => screen.getByText('CMU American English spelling'));
-    // The two empty providers never render a card.
-    expect(screen.queryByText('Empty One')).toBeNull();
-    expect(screen.queryByText('Empty Two')).toBeNull();
+    // Empty providers remain visible rather than appearing missing, and each
+    // exposes an actionable state message below its provider card.
+    expect(screen.getByText('Empty One')).toBeTruthy();
+    expect(screen.getByText('Empty Two')).toBeTruthy();
+    expect(screen.getAllByText('No definition found')).toHaveLength(2);
   });
 
   it('finds a known word after an empty lookup without closing the sheet', async () => {

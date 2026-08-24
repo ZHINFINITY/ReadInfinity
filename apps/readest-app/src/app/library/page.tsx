@@ -1974,7 +1974,7 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
             currentGroupPath ? 'opacity-100' : 'max-h-0 opacity-0'
           }`}
         >
-          <div className='flex flex-wrap items-center gap-y-1 px-4 text-base'>
+          <div className='flex min-w-0 flex-wrap items-center gap-y-1 overflow-hidden px-4 text-base'>
             <button
               onClick={() => handleNavigateToPath(undefined)}
               className='hover:bg-base-300 text-base-content/85 rounded px-2 py-1'
@@ -1987,11 +1987,13 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
                 <React.Fragment key={index}>
                   <MdChevronRight size={iconSize} className='text-neutral-content' />
                   {isLast ? (
-                    <span className='truncate rounded px-2 py-1'>{crumb.name}</span>
+                    <span className='min-w-0 max-w-[72vw] truncate rounded px-2 py-1'>
+                      {crumb.name}
+                    </span>
                   ) : (
                     <button
                       onClick={() => handleNavigateToPath(crumb.path)}
-                      className='hover:bg-base-300 text-base-content/85 truncate rounded px-2 py-1'
+                      className='hover:bg-base-300 text-base-content/85 min-w-0 max-w-[55vw] truncate rounded px-2 py-1'
                     >
                       {crumb.name}
                     </button>

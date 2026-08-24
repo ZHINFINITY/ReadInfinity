@@ -95,24 +95,115 @@ jobs:
           set -euo pipefail
           activity_file="$(find apps/readest-app/src-tauri/gen/android/app/src/main/java -name MainActivity.kt -print -quit)"
           test -n "$activity_file"
-          if ! grep -q 'ReadInfinityExitGuard' "$activity_file"; then
-            sed -i '/^package /a import android.content.Intent\nimport android.widget.Toast\nimport com.readest.native_bridge.NativeBridgePlugin' "$activity_file"
+          if ! grep -q 'ReadInfinityBackDispatch' "$activity_file"; then
+            sed -i '/^package /a import android.content.Intent\nimport android.os.Build\nimport android.view.KeyEvent\nimport android.webkit.WebView\nimport androidx.activity.OnBackPressedCallback\nimport com.readest.native_bridge.KeyDownInterceptor\nimport com.readest.native_bridge.NativeBridgePlugin' "$activity_file"
+            sed -i 's/class MainActivity : TauriActivity()/class MainActivity : TauriActivity(), KeyDownInterceptor/' "$activity_file"
+            sed -i '/super.onCreate(savedInstanceState)/a\        setupReadInfinityBackDispatcher()' "$activity_file"
             last_line="$(awk 'NF { line = NR } END { print line }' "$activity_file")"
             sed -i "${last_line}d" "$activity_file"
             cat >> "$activity_file" <<'KOTLIN'
-              // ReadInfinityExitGuard: require a second system Back press before exit.
-              private var lastBackPressAt = 0L
-              private val exitPressWindowMs = 2000L
+              // ReadInfinityBackDispatch: forward Android Back to the JS dialog
+              // stack before allowing the activity to finish.
+              private var webViewForNativeKeys: WebView? = null
+              private var interceptBackKeyEnabled = false
+              private var interceptVolumeKeysEnabled = false
+              private var interceptPageTurnerKeysEnabled = false
+              private var keyLearnModeEnabled = false
+
+              override fun onWebViewCreate(webView: WebView) {
+                  webViewForNativeKeys = webView
+              }
+
+              override fun interceptVolumeKeys(enabled: Boolean) {
+                  interceptVolumeKeysEnabled = enabled
+              }
+
+              override fun interceptBackKey(enabled: Boolean) {
+                  interceptBackKeyEnabled = enabled
+              }
+
+              override fun interceptPageTurnerKeys(enabled: Boolean) {
+                  interceptPageTurnerKeysEnabled = enabled
+              }
+
+              override fun setKeyLearnMode(enabled: Boolean) {
+                  keyLearnModeEnabled = enabled
+              }
+
+              private fun forwardNativeKey(keyName: String, keyCode: Int) {
+                  webViewForNativeKeys?.evaluateJavascript(
+                      """try { window.onNativeKeyDown("$keyName", $keyCode); } catch (_) {}""",
+                      null
+                  )
+              }
+
+              override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+                  if (event.action == KeyEvent.ACTION_DOWN) {
+                      val keyName = when (event.keyCode) {
+                          KeyEvent.KEYCODE_BACK -> "Back"
+                          KeyEvent.KEYCODE_VOLUME_UP -> "VolumeUp"
+                          KeyEvent.KEYCODE_VOLUME_DOWN -> "VolumeDown"
+                          KeyEvent.KEYCODE_MEDIA_NEXT -> "MediaNext"
+                          KeyEvent.KEYCODE_MEDIA_PREVIOUS -> "MediaPrevious"
+                          KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> "MediaPlayPause"
+                          KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> "MediaFastForward"
+                          KeyEvent.KEYCODE_MEDIA_REWIND -> "MediaRewind"
+                          else -> null
+                      }
+                      val shouldForward = when (event.keyCode) {
+                          KeyEvent.KEYCODE_BACK -> interceptBackKeyEnabled
+                          KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN ->
+                              interceptVolumeKeysEnabled || keyLearnModeEnabled
+                          KeyEvent.KEYCODE_MEDIA_NEXT,
+                          KeyEvent.KEYCODE_MEDIA_PREVIOUS,
+                          KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+                          KeyEvent.KEYCODE_MEDIA_FAST_FORWARD,
+                          KeyEvent.KEYCODE_MEDIA_REWIND ->
+                              interceptPageTurnerKeysEnabled || keyLearnModeEnabled
+                          else -> false
+                      }
+                      if (keyName != null && shouldForward) {
+                          forwardNativeKey(keyName, event.keyCode)
+                          return true
+                      }
+                  }
+                  return super.dispatchKeyEvent(event)
+              }
 
               @Suppress("DEPRECATION")
               override fun onBackPressed() {
-                  val now = System.currentTimeMillis()
-                  if (now - lastBackPressAt <= exitPressWindowMs) {
-                      super.onBackPressed()
+                  if (interceptBackKeyEnabled) {
+                      forwardNativeKey("Back", KeyEvent.KEYCODE_BACK)
                   } else {
-                      lastBackPressAt = now
-                      Toast.makeText(this, "Press back again to exit", Toast.LENGTH_SHORT).show()
+                      super.onBackPressed()
                   }
+              }
+
+              private fun setupReadInfinityBackDispatcher() {
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                      onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                          android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                          android.window.OnBackInvokedCallback {
+                              if (interceptBackKeyEnabled) {
+                                  forwardNativeKey("Back", KeyEvent.KEYCODE_BACK)
+                              } else {
+                                  finish()
+                              }
+                          }
+                      )
+                  }
+                  onBackPressedDispatcher.addCallback(this,
+                      object : OnBackPressedCallback(true) {
+                          override fun handleOnBackPressed() {
+                              if (interceptBackKeyEnabled) {
+                                  forwardNativeKey("Back", KeyEvent.KEYCODE_BACK)
+                              } else {
+                                  isEnabled = false
+                                  onBackPressedDispatcher.onBackPressed()
+                              }
+                          }
+                      }
+                  )
               }
 
               override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -122,10 +213,15 @@ jobs:
           }
           KOTLIN
           fi
-          grep -F 'ReadInfinityExitGuard' "$activity_file"
-          grep -F 'Press back again to exit' "$activity_file"
+          grep -F 'ReadInfinityBackDispatch' "$activity_file"
+          grep -F 'class MainActivity : TauriActivity(), KeyDownInterceptor' "$activity_file"
+          grep -F 'interceptBackKeyEnabled' "$activity_file"
+          grep -F 'interceptPageTurnerKeysEnabled' "$activity_file"
+          grep -F 'keyLearnModeEnabled' "$activity_file"
+          grep -F 'window.onNativeKeyDown("$keyName", $keyCode)' "$activity_file"
+          grep -F 'setupReadInfinityBackDispatcher' "$activity_file"
           grep -F 'NativeBridgePlugin.deliverActivityResult' "$activity_file"
-          tail -n 24 "$activity_file"
+          tail -n 42 "$activity_file"
 
       - name: Select FOSS Android flavor
         run: |

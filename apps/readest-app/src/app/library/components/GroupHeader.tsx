@@ -52,7 +52,7 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({ groupBy, groupName }) => {
   };
 
   return (
-    <div className='flex items-center gap-2 px-4 py-2'>
+    <div className='flex min-w-0 items-center gap-2 overflow-hidden px-4 py-2'>
       <button
         onClick={handleBack}
         className='btn btn-ghost btn-sm h-8 min-h-8 px-2'
@@ -60,9 +60,9 @@ const GroupHeader: React.FC<GroupHeaderProps> = ({ groupBy, groupName }) => {
       >
         <MdArrowBack size={iconSize} />
       </button>
-      <div className='flex items-center gap-2 overflow-hidden'>
-        <span className='text-neutral-content text-sm'>{getGroupTypeLabel()}:</span>
-        <span className='truncate text-base font-medium'>{groupName}</span>
+      <div className='flex min-w-0 flex-1 items-center gap-2 overflow-hidden'>
+        <span className='text-neutral-content shrink-0 text-sm'>{getGroupTypeLabel()}:</span>
+        <span className='min-w-0 flex-1 truncate text-base font-medium'>{groupName}</span>
       </div>
     </div>
   );

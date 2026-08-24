@@ -42,7 +42,7 @@ const NavigationRow: React.FC<NavigationRowProps> = ({
       disabled={disabled}
       data-setting-id={dataSettingId}
       className={clsx(
-        'group flex w-full items-start gap-3 py-4 pe-4 text-left',
+        'group flex w-full min-w-0 items-start gap-3 overflow-hidden py-4 pe-4 text-left',
         'transition-colors duration-150',
         'focus-visible:ring-base-content/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset',
         disabled && 'cursor-not-allowed opacity-50',
@@ -55,7 +55,7 @@ const NavigationRow: React.FC<NavigationRowProps> = ({
         </span>
       )}
       <div className='flex min-w-0 flex-1 flex-col gap-0.5'>
-        <SettingLabel className='min-w-0'>{title}</SettingLabel>
+        <SettingLabel className='block min-w-0 max-w-full break-words'>{title}</SettingLabel>
         {status && (
           <span className='text-base-content/65 line-clamp-2 min-w-0 break-words text-[0.85em]'>
             {status}

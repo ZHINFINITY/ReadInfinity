@@ -295,8 +295,16 @@ const Notebook: React.FC = ({}) => {
 
   const config = getConfig(sideBarBookKey);
   const { booknotes: allNotes = [] } = config || {};
-  const excerptNotes = allNotes
-    .filter((note) => note.type === 'excerpt' && note.text && !note.deletedAt)
+  // Excerpts and selected-text notes share the booknotes store, but a saved
+  // note is an `annotation` whose content is in `note`, not an `excerpt` whose
+  // content is in `text`. Keep both kinds visible in the Notes tab.
+  const notebookNotes = allNotes
+    .filter(
+      (item) =>
+        !item.deletedAt &&
+        ((item.type === 'excerpt' && !!item.text?.trim()) ||
+          (item.type === 'annotation' && !!item.note?.trim())),
+    )
     .sort((a, b) => a.createdAt - b.createdAt);
 
   const handleToggleSearchBar = () => {
@@ -307,12 +315,17 @@ const Notebook: React.FC = ({}) => {
     }
   };
 
-  const filteredExcerptNotes = useMemo(
+  const filteredNotebookNotes = useMemo(
     () =>
       isSearchBarVisible && searchResults
-        ? searchResults.filter((note) => note.type === 'excerpt' && note.text && !note.deletedAt)
-        : excerptNotes,
-    [excerptNotes, searchResults, isSearchBarVisible],
+        ? searchResults.filter(
+            (item) =>
+              !item.deletedAt &&
+              ((item.type === 'excerpt' && !!item.text?.trim()) ||
+                (item.type === 'annotation' && !!item.note?.trim())),
+          )
+        : notebookNotes,
+    [notebookNotes, searchResults, isSearchBarVisible],
   );
 
   if (!sideBarBookKey) return null;
@@ -325,8 +338,8 @@ const Notebook: React.FC = ({}) => {
   const { bookDoc } = bookData;
   const languageDir = getBookDirFromLanguage(bookDoc.metadata.language);
 
-  const hasSearchResults = filteredExcerptNotes.length > 0;
-  const hasAnyNotes = excerptNotes.length > 0;
+  const hasSearchResults = filteredNotebookNotes.length > 0;
+  const hasAnyNotes = notebookNotes.length > 0;
   const isNotesTabEmpty =
     !notebookNewAnnotation && !notebookEditAnnotation && !isSearchBarVisible && !hasAnyNotes;
 
@@ -447,19 +460,19 @@ const Notebook: React.FC = ({}) => {
               </div>
             )}
             <div dir='ltr'>
-              {filteredExcerptNotes.length > 0 && (
+              {filteredNotebookNotes.length > 0 && (
                 <p className='content font-size-base'>
-                  {_('Excerpts')}
+                  {_('Notes')}
                   {isSearchBarVisible && searchResults && (
                     <span className='font-size-xs ml-2 text-gray-500'>
-                      ({filteredExcerptNotes.length})
+                      ({filteredNotebookNotes.length})
                     </span>
                   )}
                 </p>
               )}
             </div>
             <ul className=''>
-              {filteredExcerptNotes.map((item, index) => (
+              {filteredNotebookNotes.map((item, index) => (
                 <li key={`${index}-${item.id}`} className='my-2'>
                   <div
                     role='button'
@@ -483,10 +496,15 @@ const Notebook: React.FC = ({}) => {
                         } as React.CSSProperties
                       }
                     >
-                      <p className='line-clamp-1'>{item.text || `Excerpt ${index + 1}`}</p>
+                      <p className='line-clamp-1'>
+                        {item.note || item.text || `${_('Note')} ${index + 1}`}
+                      </p>
                     </div>
                     <div className='collapse-content font-size-xs select-text px-3 pb-0'>
-                      <p className='hyphens-auto text-justify'>{item.text}</p>
+                      <p className='hyphens-auto text-justify'>{item.note || item.text}</p>
+                      {item.type === 'annotation' && item.note && item.text && (
+                        <p className='not-eink:opacity-70 mt-2 border-s-2 ps-2'>{item.text}</p>
+                      )}
                       <div className='flex justify-end' dir='ltr'>
                         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions*/}
                         <div
