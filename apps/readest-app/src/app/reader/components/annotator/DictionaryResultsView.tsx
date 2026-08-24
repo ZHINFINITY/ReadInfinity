@@ -505,6 +505,10 @@ export const DictionaryResultsBody: React.FC<DictionaryResultsBodyProps> = ({
           const expanded = card?.expanded ?? false;
           const sourceLabel =
             card?.outcome?.ok && card.outcome.sourceLabel ? card.outcome.sourceLabel : _(p.label);
+          const errorMessage =
+            card?.state === 'error' && card.outcome?.ok === false
+              ? card.outcome.message
+              : undefined;
           return (
             <li key={p.id}>
               <div
@@ -567,9 +571,9 @@ export const DictionaryResultsBody: React.FC<DictionaryResultsBodyProps> = ({
                           ? _('Dictionary format not supported')
                           : _('Dictionary unavailable')}
                     </div>
-                    {card?.state === 'error' && card.outcome?.message && (
+                    {errorMessage && (
                       <div className='text-base-content/55 mt-1 break-words text-xs'>
-                        {card.outcome.message}
+                        {errorMessage}
                       </div>
                     )}
                   </div>
