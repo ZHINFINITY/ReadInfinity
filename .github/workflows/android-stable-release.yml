@@ -274,8 +274,16 @@ jobs:
           if ! grep -q 'android:windowSplashScreenBackground' "$theme_file"; then
             sed -i '/<style name="Theme\.readest"/a\    <item name="android:windowSplashScreenBackground">@color/readinfinity_startup_black</item>' "$theme_file"
           fi
-          sed -i 's|<item name="android:statusBarColor">[^<]*</item>|<item name="android:statusBarColor">@android:color/black</item>|' "$theme_file"
-          sed -i 's|<item name="android:navigationBarColor">[^<]*</item>|<item name="android:navigationBarColor">@android:color/black</item>|' "$theme_file"
+          if grep -q 'android:statusBarColor' "$theme_file"; then
+            sed -i 's|<item name="android:statusBarColor">[^<]*</item>|<item name="android:statusBarColor">@android:color/black</item>|' "$theme_file"
+          else
+            sed -i '/<style name="Theme\.readest"/a\    <item name="android:statusBarColor">@android:color/black</item>' "$theme_file"
+          fi
+          if grep -q 'android:navigationBarColor' "$theme_file"; then
+            sed -i 's|<item name="android:navigationBarColor">[^<]*</item>|<item name="android:navigationBarColor">@android:color/black</item>|' "$theme_file"
+          else
+            sed -i '/<style name="Theme\.readest"/a\    <item name="android:navigationBarColor">@android:color/black</item>' "$theme_file"
+          fi
           if ! grep -q 'android:windowLightStatusBar' "$theme_file"; then
             sed -i '/<style name="Theme\.readest"/a\    <item name="android:windowLightStatusBar">false</item>' "$theme_file"
           fi
