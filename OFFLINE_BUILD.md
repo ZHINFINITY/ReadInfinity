@@ -31,6 +31,6 @@ The full production build may require a larger machine because the application b
 
 ## Credits and licensing
 
-Read∞ is maintained by **ZHINFINITY**. It incorporates work from Tauri, Next.js, React, Foliate JavaScript libraries, PDF.js, zip.js, fflate, daisyUI, Marked, React Icons, and open-source font projects. See the [project credits in the README](README.md#credits) and the dependency notices in this repository.
+Read∞ is maintained by **ZHINFINITY** and credits **InfinityZ-Lab** in the application About section. It is an independent fork of the [Readest open-source project](https://github.com/readest/readest); the upstream project and its contributors retain attribution for their original work. Read∞ also incorporates work from Tauri, Next.js, React, Foliate JavaScript libraries, PDF.js, zip.js, fflate, daisyUI, Marked, React Icons, and open-source font projects. See the [project credits in the README](README.md#credits) and the detailed [`NOTICE.md`](NOTICE.md).
 
 Read∞ is distributed under the **GNU Affero General Public License version 3 or later**. Keep the repository’s `LICENSE` file, copyright notices, dependency licenses, and attribution when redistributing source or binaries. If you modify covered work, identify the modifications and provide the corresponding source under the applicable AGPL terms. Third-party projects remain subject to their respective licenses.

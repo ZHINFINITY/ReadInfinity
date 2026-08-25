@@ -1,7 +1,23 @@
 {
   "name": "@readest/monorepo",
   "private": true,
-  "repository": "readest/readest",
+  "repository": "ZHINFINITY/ReadInfinity",
+  "homepage": "https://github.com/ZHINFINITY/ReadInfinity",
+  "bugs": {
+    "url": "https://github.com/ZHINFINITY/ReadInfinity/issues"
+  },
+  "keywords": [
+    "readinfinity",
+    "read∞",
+    "ebook-reader",
+    "android-reader",
+    "offline-reader",
+    "epub-reader",
+    "pdf-reader",
+    "local-library",
+    "tauri",
+    "open-source"
+  ],
   "scripts": {
     "test": "pnpm --filter @readest/readest-app test",
     "test:lua": "pnpm --filter @readest/readest-app test:lua",

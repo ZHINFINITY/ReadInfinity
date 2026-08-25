@@ -167,7 +167,7 @@
       "requireLiteralLeadingDot": false
     },
     "cli": {
-      "description": "Readest CLI",
+      "description": "Read∞ offline reader CLI",
       "args": [
         {
           "name": "file1",

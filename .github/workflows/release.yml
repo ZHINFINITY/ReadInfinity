@@ -1,4 +1,4 @@
-name: Read∞ Legacy Release (manual only)
+name: Read∞ Desktop Release (manual only)
 on:
   workflow_dispatch:
 

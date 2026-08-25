@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use or redistribute Read∞, please cite the project and preserve its license and attribution notices."
+title: "Read∞"
+type: software
+version: "1.0.0"
+date-released: "2026-08-25"
+repository-code: "https://github.com/ZHINFINITY/ReadInfinity"
+url: "https://github.com/ZHINFINITY/ReadInfinity/releases/tag/v1.0.0"
+license: "AGPL-3.0-or-later"
+authors:
+  - name: "ZHINFINITY"
+  - name: "InfinityZ-Lab"
+abstract: "A private, offline-first ebook reader for Android and desktop that opens books and dictionaries directly from user-selected device folders."
+keywords:
+  - ebook reader
+  - offline reader
+  - Android reader
+  - EPUB
+  - PDF
+  - local library
+  - privacy
+  - Tauri
