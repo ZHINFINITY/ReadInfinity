@@ -31,7 +31,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
@@ -48,25 +48,25 @@ jobs:
           git clone --depth 1 https://github.com/readest/tauri-plugin-webview-upgrade.git apps/readest-app/src-tauri/plugins/tauri-plugin-webview-upgrade
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 11.1.1
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
           cache: gradle
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Install Android SDK packages
         run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
@@ -398,7 +398,7 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Upload all ABI build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: readinfinity-android-all-abi-release-${{ github.sha }}
           path: |
@@ -462,22 +462,22 @@ jobs:
           gh release upload "$RELEASE_TAG" latest.json release-notes.json --clobber
 
       - name: Attest arm64-v8a APK
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: apps/readest-app/${{ steps.apk.outputs.arm64_asset }}
 
       - name: Attest armeabi-v7a APK
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: apps/readest-app/${{ steps.apk.outputs.armv7_asset }}
 
       - name: Attest x86 APK
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: apps/readest-app/${{ steps.apk.outputs.x86_asset }}
 
       - name: Attest x86_64 APK
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: apps/readest-app/${{ steps.apk.outputs.x86_64_asset }}
 
@@ -506,7 +506,7 @@ jobs:
           cat "apps/readest-app/${{ steps.apk.outputs.x86_64_asset }}.sha256"
 
       - name: Upload all-ABI release metadata
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: readinfinity-all-abi-release-metadata-${{ github.sha }}
           path: |
