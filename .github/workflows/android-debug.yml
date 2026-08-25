@@ -229,6 +229,37 @@ jobs:
           grep -F 'NativeBridgePlugin.deliverActivityResult' "$activity_file"
           tail -n 42 "$activity_file"
 
+      - name: Configure native AMOLED startup theme
+        run: |
+          set -euo pipefail
+          res_dir="apps/readest-app/src-tauri/gen/android/app/src/main/res"
+          theme_file="$(find "$res_dir" -maxdepth 2 -type f \( -path '*/values/themes.xml' -o -path '*/values/styles.xml' \) -print -quit)"
+          test -n "$theme_file"
+          cat > "$res_dir/values/readinfinity_theme_colors.xml" <<'XML'
+          <resources>
+            <color name="readinfinity_startup_black">#000000</color>
+          </resources>
+          XML
+          if grep -q 'android:windowBackground' "$theme_file"; then
+            sed -i 's|<item name="android:windowBackground">[^<]*</item>|<item name="android:windowBackground">@color/readinfinity_startup_black</item>|' "$theme_file"
+          else
+            sed -i '/<style name="Theme\.readest"/a\    <item name="android:windowBackground">@color/readinfinity_startup_black</item>' "$theme_file"
+          fi
+          if ! grep -q 'android:windowSplashScreenBackground' "$theme_file"; then
+            sed -i '/<style name="Theme\.readest"/a\    <item name="android:windowSplashScreenBackground">@color/readinfinity_startup_black</item>' "$theme_file"
+          fi
+          sed -i 's|<item name="android:statusBarColor">[^<]*</item>|<item name="android:statusBarColor">@android:color/black</item>|' "$theme_file"
+          sed -i 's|<item name="android:navigationBarColor">[^<]*</item>|<item name="android:navigationBarColor">@android:color/black</item>|' "$theme_file"
+          if ! grep -q 'android:windowLightStatusBar' "$theme_file"; then
+            sed -i '/<style name="Theme\.readest"/a\    <item name="android:windowLightStatusBar">false</item>' "$theme_file"
+          fi
+          if ! grep -q 'android:windowLightNavigationBar' "$theme_file"; then
+            sed -i '/<style name="Theme\.readest"/a\    <item name="android:windowLightNavigationBar">false</item>' "$theme_file"
+          fi
+          grep -F 'readinfinity_startup_black' "$theme_file"
+          grep -F 'android:windowSplashScreenBackground' "$theme_file"
+          grep -F 'android:statusBarColor' "$theme_file"
+
       - name: Select FOSS Android flavor
         run: |
           app_gradle="apps/readest-app/src-tauri/gen/android/app/build.gradle.kts"

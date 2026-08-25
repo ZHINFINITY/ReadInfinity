@@ -16,7 +16,13 @@ import {
 } from '@/utils/ambientLight';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { CustomTheme, Palette, ThemeMode } from '@/styles/themes';
-import { EnvConfigType, isWebAppPlatform } from '@/services/environment';
+import { EnvConfigType, isTauriAppPlatform, isWebAppPlatform } from '@/services/environment';
+import {
+  getDefaultThemeColor,
+  getDefaultThemeMode,
+  getStoredThemeValue,
+  setStoredThemeValue,
+} from '@/utils/themeStorage';
 import { SystemSettings } from '@/types/settings';
 import { Insets } from '@/types/misc';
 
@@ -59,32 +65,24 @@ interface ThemeState {
 }
 
 const getInitialThemeMode = (): ThemeMode => {
-  if (typeof window !== 'undefined' && localStorage) {
-    const stored = localStorage.getItem('themeMode');
-    if (isValidThemeMode(stored)) return stored;
-  }
-  return 'auto';
+  const stored = getStoredThemeValue('themeMode');
+  if (isValidThemeMode(stored)) return stored;
+  return getDefaultThemeMode();
 };
 
 const getInitialThemeColor = (): string => {
-  if (typeof window !== 'undefined' && localStorage) {
-    const defaultColor = window.__READEST_IS_EINK ? 'contrast' : 'amoled';
-    return localStorage.getItem('themeColor') || defaultColor;
-  }
-  return 'amoled';
+  const defaultColor =
+    typeof window !== 'undefined' && window.__READEST_IS_EINK
+      ? 'contrast'
+      : getDefaultThemeColor();
+  return getStoredThemeValue('themeColor') || defaultColor;
 };
 
-const getInitialAmbientIsDarkMode = (systemIsDarkMode: boolean): boolean => {
-  if (typeof window !== 'undefined' && localStorage) {
-    return readStoredAmbientIsDarkMode(localStorage.getItem('ambientIsDarkMode'), systemIsDarkMode);
-  }
-  return systemIsDarkMode;
-};
+const getInitialAmbientIsDarkMode = (systemIsDarkMode: boolean): boolean =>
+  readStoredAmbientIsDarkMode(getStoredThemeValue('ambientIsDarkMode'), systemIsDarkMode);
 
 const persistAmbientIsDarkMode = (isDark: boolean) => {
-  if (typeof window !== 'undefined' && localStorage) {
-    localStorage.setItem('ambientIsDarkMode', isDark ? 'true' : 'false');
-  }
+  setStoredThemeValue('ambientIsDarkMode', isDark ? 'true' : 'false');
 };
 
 const applyDataTheme = (themeColor: string, isDarkMode: boolean) => {
@@ -180,9 +178,7 @@ export const useThemeStore = create<ThemeState>((set, get) => {
     setSystemUIAlwaysHidden: (hidden: boolean) => set({ systemUIAlwaysHidden: hidden }),
     getIsDarkMode: () => get().isDarkMode,
     setThemeMode: (mode) => {
-      if (typeof window !== 'undefined' && localStorage) {
-        localStorage.setItem('themeMode', mode);
-      }
+      setStoredThemeValue('themeMode', mode);
       const isDarkMode = resolveThemeIsDarkMode(
         mode,
         get().systemIsDarkMode,
@@ -194,9 +190,7 @@ export const useThemeStore = create<ThemeState>((set, get) => {
       syncAmbientLightSubscription(mode);
     },
     setThemeColor: (color) => {
-      if (typeof window !== 'undefined' && localStorage) {
-        localStorage.setItem('themeColor', color);
-      }
+      setStoredThemeValue('themeColor', color);
       applyDataTheme(color, get().isDarkMode);
       set({ themeColor: color });
       set({ themeCode: getThemeCode() });
@@ -253,17 +247,21 @@ export const useThemeStore = create<ThemeState>((set, get) => {
 });
 
 export const loadDataTheme = () => {
-  if (typeof localStorage === 'undefined' || typeof document === 'undefined') return;
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
-  const themeMode = localStorage.getItem('themeMode');
-  const themeColor = localStorage.getItem('themeColor');
-  if (themeMode && themeColor) {
-    const systemIsDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const ambientIsDarkMode = getInitialAmbientIsDarkMode(systemIsDarkMode);
-    const mode = isValidThemeMode(themeMode) ? themeMode : 'auto';
-    const isDarkMode = resolveThemeIsDarkMode(mode, systemIsDarkMode, ambientIsDarkMode);
-    applyDataTheme(themeColor, isDarkMode);
-  }
+  const storedThemeMode = getStoredThemeValue('themeMode');
+  const storedThemeColor = getStoredThemeValue('themeColor');
+  // Web keeps its historical behavior when no preference exists. Tauri must
+  // always paint its explicit AMOLED default before the rest of the app loads.
+  if (!isTauriAppPlatform() && (!storedThemeMode || !storedThemeColor)) return;
+
+  const systemIsDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const ambientIsDarkMode = getInitialAmbientIsDarkMode(systemIsDarkMode);
+  const mode = isValidThemeMode(storedThemeMode) ? storedThemeMode : getDefaultThemeMode();
+  const color =
+    storedThemeColor || (window.__READEST_IS_EINK ? 'contrast' : getDefaultThemeColor());
+  const isDarkMode = resolveThemeIsDarkMode(mode, systemIsDarkMode, ambientIsDarkMode);
+  applyDataTheme(color, isDarkMode);
 };
 
 export const initSystemThemeListener = (appService: AppService) => {
@@ -271,9 +269,7 @@ export const initSystemThemeListener = (appService: AppService) => {
 
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
   const applySystemTheme = (systemIsDarkMode: boolean) => {
-    if (typeof window !== 'undefined' && localStorage) {
-      localStorage.setItem('systemIsDarkMode', systemIsDarkMode ? 'true' : 'false');
-    }
+    setStoredThemeValue('systemIsDarkMode', systemIsDarkMode ? 'true' : 'false');
     useThemeStore.getState().handleSystemThemeChange(systemIsDarkMode);
   };
   const updateColorTheme = async () => {

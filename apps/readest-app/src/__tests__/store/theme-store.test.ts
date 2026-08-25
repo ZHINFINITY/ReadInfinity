@@ -29,6 +29,7 @@ vi.mock('@tauri-apps/api/window', () => ({
 }));
 
 vi.mock('@/services/environment', () => ({
+  isTauriAppPlatform: vi.fn(() => false),
   isWebAppPlatform: vi.fn(() => false),
 }));
 

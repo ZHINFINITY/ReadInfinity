@@ -11,11 +11,13 @@ import {
   themes,
   Palette,
   CustomTheme,
+  ThemeMode,
   generateLightPalette,
   generateDarkPalette,
 } from '@/styles/themes';
 import { createFontCSS, CustomFont } from '@/styles/fonts';
-import { readStoredAmbientIsDarkMode } from './ambientLight';
+import { isValidThemeMode, readStoredAmbientIsDarkMode } from './ambientLight';
+import { getDefaultThemeColor, getDefaultThemeMode, getStoredThemeValue } from './themeStorage';
 import { INLINE_FORMATTING_SELECTOR } from './inlineTags';
 import { getOSPlatform } from './misc';
 import { SCROLL_WRAPPER_CLASS, SCROLL_WRAPPER_FIT_CLASS } from './scrollable';
@@ -842,17 +844,18 @@ export interface ThemeCode {
 }
 
 export const getThemeCode = () => {
-  let themeMode = 'auto';
-  let themeColor = 'amoled';
+  let themeMode: ThemeMode = getDefaultThemeMode();
+  let themeColor = getDefaultThemeColor();
   let systemIsDarkMode = false;
   let ambientIsDarkMode = false;
   let customThemes: CustomTheme[] = [];
   if (typeof window !== 'undefined') {
-    themeColor = localStorage.getItem('themeColor') || 'amoled';
-    themeMode = localStorage.getItem('themeMode') || 'auto';
-    systemIsDarkMode = localStorage.getItem('systemIsDarkMode') === 'true';
+    themeColor = getStoredThemeValue('themeColor') || getDefaultThemeColor();
+    const storedThemeMode = getStoredThemeValue('themeMode');
+    if (isValidThemeMode(storedThemeMode)) themeMode = storedThemeMode;
+    systemIsDarkMode = getStoredThemeValue('systemIsDarkMode') === 'true';
     ambientIsDarkMode = readStoredAmbientIsDarkMode(
-      localStorage.getItem('ambientIsDarkMode'),
+      getStoredThemeValue('ambientIsDarkMode'),
       systemIsDarkMode,
     );
     customThemes = JSON.parse(localStorage.getItem('customThemes') || '[]');

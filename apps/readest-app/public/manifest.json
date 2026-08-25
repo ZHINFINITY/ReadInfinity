@@ -1,10 +1,11 @@
 {
-  "name": "Readest",
-  "short_name": "Readest",
+  "name": "Read∞",
+  "short_name": "Read∞",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "description": "Readest is an open-source eBook reader supporting EPUB, PDF, and sync across devices.",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "description": "Read∞ is an offline open-source eBook reader for EPUB, PDF, and other book formats.",
   "icons": [
     {
       "src": "/icon.png",

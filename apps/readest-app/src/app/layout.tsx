@@ -13,6 +13,7 @@ const description =
   'Read∞ is an offline ebook reader for reading books directly from device storage, ' +
   'with local library metadata, notes, highlighting, and dictionary support.';
 const previewImage = '/icon.png';
+const isTauriBuild = process.env['NEXT_PUBLIC_APP_PLATFORM'] === 'tauri';
 
 export const metadata: Metadata = {
   metadataBase: new URL(url),
@@ -37,7 +38,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: 'Read∞',
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
   },
   openGraph: {
     type: 'website',
@@ -65,6 +66,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
+  themeColor: '#000000',
   // `interactive-widget=resizes-content` is appended client-side on
   // Android only — see Providers.tsx. Other browsers warn about the
   // unrecognized key on every page load, so we keep it out of SSR.
@@ -133,9 +135,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang='en'
       suppressHydrationWarning
-      className={process.env['NEXT_PUBLIC_APP_PLATFORM'] === 'tauri' ? 'edge-to-edge' : ''}
+      className={isTauriBuild ? 'edge-to-edge' : ''}
+      data-theme={isTauriBuild ? 'amoled-dark' : undefined}
     >
       <head>
+        {isTauriBuild ? (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `try {
+                const root = document.documentElement;
+                const color = localStorage.getItem('readinfinity.themeColor') || 'amoled';
+                const mode = localStorage.getItem('readinfinity.themeMode') || 'dark';
+                root.setAttribute('data-theme', color + '-' + (mode === 'light' ? 'light' : 'dark'));
+              } catch (_) {}`,
+            }}
+          />
+        ) : null}
         {shouldInjectRuntimeConfig ? (
           <Script src='/runtime-config.js' strategy='beforeInteractive' />
         ) : null}

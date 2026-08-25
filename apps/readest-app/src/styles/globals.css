@@ -51,6 +51,10 @@ html[data-page='reader'] {
 
 /* AMOLED Black turns the app and page shells into true OLED black. Keep the
  * palette's slightly lighter control surfaces intact for contrast. */
+html.edge-to-edge:not([data-theme]),
+html.edge-to-edge:not([data-theme]) body,
+html.edge-to-edge[data-theme='amoled-dark'],
+html.edge-to-edge[data-theme='amoled-dark'] body,
 html[data-theme='amoled-dark'],
 html[data-theme='amoled-dark'] body,
 html[data-theme='amoled-dark'] .library-page,
